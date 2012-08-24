@@ -24,52 +24,80 @@ var fs = require('fs');
 var path = require('path');
 var jsvutil = require('jsvutil');
 
-// This module performs path manipulation. The following conventions are used:
-//
-// Given /a/b/c.txt then
-//
-// /a/b/c.txt is the pathname
-// /a/b       is the dirname
-//      c.txt is the filename
-//      c     is the basename
-//       .txt is the extension
+var PACKAGE_FILE = 'package.json';
+var SCHEMA_DEFAULT = 'config/schema';
+var CONFIG_DEFAULT = 'config';
+var NODE_CONFIG_DIR = process.env['NODE_CONFIG_DIR'];
+var NODE_ENV = process.env['NODE_ENV'];
 
 /**
- * Returns the pathname of the package.json file starting at the directory
- * specified by the dirname. Recursively looks at each parent directory until
- * the file is found. Throws an error if not found.
+ * Returns true if the pathname exists and is a file.
  */
-function getPackagePathname(dirname) {
-    if (!dirname) {
-        throw Error('The dirname argument is required');
-    }
-    var pathname = path.resolve(dirname, 'package.json');
-    if (fs.existsSync(pathname) && fs.statSync(pathname).isFile()) {
-        return pathname;
-    }
-    var parentDirname = path.resolve(dirname, '..');
-    if (parentDirname === dirname) {
-        throw new Error("Cannot find the 'package.json' file.");
-    }
-    return getPackagePathname(parentDirname);
-}
-
-// Checks that the directory exists and that it is a directory.
-function checkDirectory(dirname) {
-    if (fs.existsSync(dirname) && fs.statSync(dirname).isDirectory()) {
-        return true;
-    }
-    throw new Error("Cannot find the '" + dirname + "' directory.");
+function isFile(pathname) {
+    return fs.existsSync(pathname) && fs.statSync(pathname).isFile();
 }
 
 /**
- * Converts an array of names to a string list. This function is called from
- * the findFile function when creating the error message.
+ * Returns true if the pathname exists and is a directory.
+ */
+function isDirectory(pathname) {
+    return fs.existsSync(pathname) && fs.statSync(pathname).isDirectory();
+}
+
+/**
+ * Given a directory, tries to find the file in that directory. Tries the
+ * parent directory if not found. Returns the pathname or null if not found.
+ */
+function findFile(directory, filename) {
+    var current = directory;
+    var previous = null;
+    while (current !== previous) {
+        var pathname = path.resolve(current, filename);
+        if (isFile(pathname)) {
+            return pathname;
+        }
+        previous = current;
+        current = path.resolve(current, '..');
+    }
+    return null;
+}
+
+/**
+ * Reads the file as either a JavaScript module or a JSON file. The Node.js
+ * require function is not used because we want to limit it to only .js and
+ * .json files.
+ */
+function readFile(pathname) {
+    var ext = path.extname(pathname);
+    if (ext === '.js') {
+        if (isFile(pathname)) {
+            return require(pathname);
+        } else {
+            return null;
+        }
+    }
+    if (ext === '.json') {
+        if (isFile(pathname)) {
+            var text = fs.readFileSync(pathname, 'utf8');
+            return JSON.parse(text);
+        } else {
+            return null;
+        }
+    }
+    return readFile(pathname + '.js') || readFile(pathname + '.json');
+}
+
+/**
+ * Converts a string or an array of strings to a display value.
+ * 'a' -> "'a'"
  * ['a'] -> "'a'"
  * ['a','b'] -> "'a' or 'b'"
  * ['a','b','c'] -> "'a', 'b', or 'c'"
  */
-function nameList(names) {
+function display(names) {
+    if (typeof names === 'string') {
+        names = [names];
+    }
     var list = [];
     var n = names.length;
     names.forEach(function (name, i) {
@@ -88,73 +116,147 @@ function nameList(names) {
 }
 
 /**
- * For each basename in basenames, find basename.js or basename.json in the
- * directory specified by the dirname. Returns the pathname of the file if
- * found. Throws an error if not found.
+ * Gets the schema given the base directory and the schema option.
  */
-function findFile(basenames, dirname) {
-    if (!Array.isArray(basenames)) {
-        basenames = [ basenames ];
+function getSchema(base, option) {
+    if (typeof option === 'object') {
+        return option;
+    } else if (typeof option === 'string') {
+        var pathname = path.resolve(base, option);
+        schema = readFile(path.resolve(base, option));
+        if (schema === null) {
+            throw new Error('Schema not found: ' + pathname);
+        }
+    } else {
+        throw new TypeError('The schema option be an object or a string');
     }
-    var filenames = [];
-    basenames.forEach(function (basename) {
-        filenames.push(basename + '.js');
-        filenames.push(basename + '.json');
-    });
-    for (var i = 0; i < filenames.length; i++) {
-        var pathname = path.resolve(dirname, filenames[i]);
-        if (fs.existsSync(pathname) && fs.statSync(pathname).isFile()) {
-            return pathname;
+}
+
+/**
+ * Gets the configuration given the base directory, package name, and the
+ * config option.
+ */
+function getConfig(base, pkgname, option) {
+    if (typeof option !== 'string') {
+        throw new TypeError('The config option must be a string');
+    }
+
+    var directory = path.resolve(base, option);
+
+    if (!isDirectory(directory)) {
+        throw new Error('Config directory not found: ' + directory);
+    }
+
+    var names = [];
+
+    function push(name) {
+        if (typeof name === 'string' && names.indexOf(name) < 0) {
+            names.push(name);
         }
     }
-    throw new Error("Cannot find " + nameList(filenames) + " in '" +
-        dirname + "'.");
+
+    push(NODE_ENV);
+    push(pkgname);
+    push(pkgname.toLowerCase());
+    push(CONFIG_DEFAULT);
+
+    var config = null;
+
+    for (var i = 0; i < names.length; i++) {
+        config = readFile(path.resolve(directory, names[i]));
+        if (config !== null) {
+            break;
+        }
+    }
+
+    names = names.join(', ');
+
+    if (config === null) {
+        throw new Error('Config file not found: ' + names + ' in ' + directory);
+    }
+
+    return config;
 }
 
 /**
  * The function exported by this module.
  */
-function pkgconfig() {
+function pkgconfig(options) {
 
-    // Get the dirname of the module requiring this module.
-    var moduleDirname = path.dirname(module.parent.filename);
+    // Find and read the package descriptor file.
 
-    // Get the pathname and dirname of the package.json file.
-    var packagePathname = getPackagePathname(moduleDirname);
-    var packageDirname = path.dirname(packagePathname);
+    var file = findFile(path.dirname(module.parent.filename), PACKAGE_FILE);
 
-    // Check that the config directory exists.
-    var configDirname = path.resolve(packageDirname, 'config');
-    checkDirectory(configDirname);
-
-    // Read the schema from the config directory.
-    var schemaPathname = findFile('schema', configDirname);
-    var schema = require(schemaPathname);
-
-    // Determine the configuration directory. This is either the config
-    // directory in the package directory or the directory specified by the
-    // value of the NODE_CONFIG_DIR environment variable.
-    var NODE_CONFIG_DIR = process.env['NODE_CONFIG_DIR'];
-    if (NODE_CONFIG_DIR) {
-        configDirname = path.resolve(packageDirname, NODE_CONFIG_DIR);
+    if (file === null) {
+        throw new Error('File not found: ' + PACKAGE_FILE);
     }
-    
-    // Read the configuration file using the package.name, the value of
-    // NODE_ENV, and default config basename, in that order.
-    var package = require(packagePathname);
-    var configBasenames = [ package.name ];
-    var NODE_ENV = process.env['NODE_ENV'];
-    if (NODE_ENV) {
-        configBasenames.push(NODE_ENV);
-    }
-    configBasenames.push('config');
-    var configPathname = findFile(configBasenames, configDirname);
-    var config = require(configPathname);
 
-    // Validate the configuration data against the schema and return the
-    // configuration data on success.
+    options = options || {};
+    options.schema = options.schema || SCHEMA_DEFAULT;
+    options.config = NODE_CONFIG_DIR || options.config;
+    options.config = options.config || CONFIG_DEFAULT;
+
+    var base = path.dirname(file);
+    var package = readFile(file);
+
+    // Find, read, and check the schema file.
+
+    var schema;
+
+    if (typeof options.schema === 'object') {
+        schema = options.schema;
+    } else if (typeof options.schema === 'string') {
+        var pathname = path.resolve(base, options.schema);
+        schema = readFile(path.resolve(base, options.schema));
+        if (schema === null) {
+            throw new Error('Schema not found: ' + display(pathname));
+        }
+    } else {
+        throw new TypeError('The schema option be an object or a string');
+    }
+
+    jsvutil.check(schema);
+
+    // Find, read, and validate the schema file.
+
+    if (typeof options.config !== 'string') {
+        throw new TypeError('The config option must be a string');
+    }
+
+    var directory = path.resolve(base, options.config);
+
+    if (!isDirectory(directory)) {
+        throw new Error('Config directory not found: ' + display(directory));
+    }
+
+    var names = [];
+
+    function push(name) {
+        if (typeof name === 'string' && names.indexOf(name) < 0) {
+            names.push(name);
+        }
+    }
+
+    push(NODE_ENV);
+    push(package.name);
+    push(package.name.toLowerCase());
+    push(CONFIG_DEFAULT);
+
+    var config = null;
+
+    for (var i = 0; i < names.length; i++) {
+        config = readFile(path.resolve(directory, names[i]));
+        if (config !== null) {
+            break;
+        }
+    }
+
+    if (config === null) {
+        throw new Error('Config file not found: ' + display(names) + ' in ' +
+            display(directory));
+    }
+
     jsvutil.validate(config, schema);
-    return config;
 }
 
-module.exports = exports = pkgconfig;
+module.exports = pkgconfig;

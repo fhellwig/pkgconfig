@@ -2,14 +2,14 @@
 
 Reads and validates JSON configuration files for Node.js packages.
 
-Key Features:
+## Features
 
 - It provides a *consistent* approach for finding configuration files that does not rely on the current working directory.
 - It provides a *safe* approach for using configuration files by validating them against a JSON schema.
 
-## Quick Start
+## Installation
 
-### Installation
+### Dependencies
 
 Add pkgconfig to your `package.json` depencencies and run `npm install`.
 
@@ -17,30 +17,71 @@ Add pkgconfig to your `package.json` depencencies and run `npm install`.
         "pkgconfig": "0.0.x"
     }
 
-### Configuration
+    $ npm install
 
-Create a `config` directory in the root of your application directory. Put a `config.json` and a `schema.json` file into the `config` directory.
+### Configuration 
 
-    app/
+Create a `config` directory in the top-level directory of your Node.js application.
+
+Now add a `schema.json` and a `config.json` file to this directory.
+
+    myapp/
         config/
             config.json
             schema.json
         package.json
         server.js
 
-Sample `config.json` file:
+This is the default layout. Other configurations are supported (please see the
+Options section below).
 
-    {
-        "port": 8080
-    }
+## Usage
 
-Sample `schema.json` file:
+### Reading and validating
+
+Call the function returned by `require('pkgconfig')`:
+
+    var pkgconfig = require('pkgconfig');
+
+    var config = pkgconfig();
+
+This reads and validates the configuration file against the schema.
+
+### Top-level directory
+
+The default location of the `config` directory is in the top-level package
+directory of the module calling `require('pkgconfig')`. It is found using the
+following steps:
+
+1. Get the parent module (the module calling `require('pkgconfig')`).
+2. Get the directory part of the parent module's filename.
+3. Look for a `package.json` file in this directory.
+4. If found, let that be the *package-root* directory.
+5. Otherwise, get the parent directory (..) and go to step 3.
+
+This algorithm means that the module using `pkgconfig` need not be in the top
+level package directory. For example, if pkgconfig were used in a file located
+in the `lib` subdirectory, then pkgconfig will still find the package-root
+directory (the one containing the `package.json` file) and look for the
+`config` directory in that package-root directory.
+
+## Example
+
+Here is a sample `schema.json` schema file and a sample `config.json`
+configuration file that is valid against the schema.
+
+### Sample schema.json file
+
+This is a sample JSON schema file that requires a port number having a range of
+one to 65,535 and having a default value of 80. The pkgconfig utility uses the
+[JSV](https://github.com/garycourt/JSV) JSON Schema Validator.
 
     {
         "properties": {
             "port": {
                 "description": "The web server port number.",
                 "type": "integer",
+                "required": true,
                 "minimum": 1,
                 "maximum": 65535,
                 "default": 80
@@ -48,93 +89,167 @@ Sample `schema.json` file:
         }
     }
 
-Any `.json` configuration or schema file can also be provided as a `.js` module file by setting `module.exports` to a JSON-compatible JavaScript object or array. For example, instead of `config.json`, we could have written the following `config.js` file:
+### Sample config.json file
 
-    module.exports = {
+This is a sample JSON configuration file that specifies the port as being 8080.
+
+    {
+        "port": 8080
+    }
+
+### Alternate file format
+
+JavaScript files can be used instead of JSON files by simple setting the
+`module.exports` value.
+
+A `schema.js` file can be used instead of the `schema.json` file.
+
+    var schema = {
+        properties: {
+            port: {
+                description: 'The web server port number.',
+                type: 'integer',
+                required: true,
+                minimum: 1,
+                maximum: 65535,
+                default: 80
+            }
+        }
+    };
+
+    module.exports = schema;
+
+A `config.js` file can be used instead of the `config.json` file.
+
+    var config = {
         port: 8080
     };
 
-The JSON data is simple rewritten as a JavaScript object literal. Beyond notational convenience, this also allows for nested constructs or code that evaluates the environment at runtime.
+    module.exports = config;
 
-### Usage
+Beyond notational convenience, this also allows for nested constructs or code
+that evaluates the environment at runtime.
 
-In your main file, require and call the `pkgconfig()` function.
+## Options
 
-For example, in the `server.js` file, add the following statements:
+The schema object or file and the configuration directory are specified by
+passing an options object to the `pkgconfig` function. The following example
+shows an options object configured with the default values:
 
-    // Require pkgconfig.
     var pkgconfig = require('pkgconfig');
 
-    // Read the config file and validate it against the schema.
-    var config = pkgconfig();
+    var options = {
+        schema: path.join('config', 'schema'),
+        config: 'config'
+    };
 
-    // Use the config values, knowing that they have been validated.
-    console.log('port: %d', config.port);
+    var config = pkgconfig(options);
 
-The code using `pkgconfig` need not be in the top level package directory.  For example, if these statements were placed in a file located in the `lib` subdirectory, then pkgconfig will still find the package root directory (the one containing the `package.json` file) and look for the `config` directory in the package root directory.
+The schema and config option can be any of the following:
 
-### Overrides
+1. A JavaScript object literal.
+2. A relative or absolute pathname to a file (the '.js' or '.json' extension is optional).
+3. A relative or absolute directory name.
 
-The `NODE_CONFIG_DIR` environment variable overrides the location of configuration (but **not** schema) files. (The schema file MUST be located in the `config` subdirectory of the package root directory.) If the value of the `NODE_CONFIG_DIR` environment variable is not an absolute path, it is resolved against the package root directory, and not the current working directory.
+The schema and config options are processed using the following algorithm:
 
-The `NODE_ENV` environment variable overrides the `config.js` or `config.json` default filename of the configuration file. Typically, `NODE_ENV` is set to a value such as `development` or `production`.
+1. If the option is an object literal, then it is used as-is. Stop.
+2. Resolve the option against the package-root directory (if the option is
+   already an absolute path, then this will not change the option).
+3. If the resulting absolute path is the pathname of a file (or if appending
+   '.js' or '.json' results in an absolute pathname to a file), then read that
+   file as a JSON object. Stop.
+4. Otherwise, the resulting absolute path *must* be a directory. Find the file
+   in that directory and read it as a JSON object. Stop.
 
-In this example, we have used `config.json` as the filename of the configuration file. This is the default, or fallback, filename. Preference is given to a configuration file having the same basename as the package name. This is detailed in the *How It Works* section.
+Details for step four (4) in this algorithm (finding the file in a directory):
+
+*For the schema option:*
+
+- The schema file must be named `schema.js` or `schema.json`.
+
+The way in which these are resolved will now be described.
+
+### Schema option resolution
+
+If the schema option is an object, then it is used 'as is' and no further
+resolution is performed. Otherwise, it must be a string.
+
+The value of this string is resolved against the package-root directory
+resulting in a pathname.
+
+If the resulting pathname is a file, or if appending '.js' or '.json'
+results in a pathname to a file, then it is read as the schema.
+
+Otherwise, 
+If the resolved path is a directory, then it is joined with the literal string
+'schema' to form the schema file pathname. Otherwise, it is assumed to be a
+schema file pathname.
+
+If the pathname ends with '.js' or '.json', then the file is read. Otherwise,
+each of these extensions is tried in order to read the schema file.
+
+Therefore, if no schema option is specified, then the following two default
+schema pathnames are tried:
+
+- `<package-root>/config/schema.js`
+- `<package-root>/config/schema.json`
+
+The schema is then checked to verify that is is a valid JSON schema.
+
+### Config option resolution
+
+If the CONFIG_DIR environment variable is set, then it is used instead of the
+config option. Otherwise, if the config option is an object, then it is used
+'as is' and no further resolution is performed. Otherwise, it must be a string.
+
+The value of the CONFIG_DIR environment variable (if set) or the value of the
+config option is resolved against the package-root directory.
+
+If the resolved path is a directory, then it is joined with the the following
+four basenames to arrive at four possible config file pathnames. Otherwise, it
+is assumed to be a config file pathname.
+
+- `<CONFIG_ENV>` (typically set to 'production' or 'development')
+- `<package-name>` (the package name from the `package.json` file)
+- `<package-name-lc>` (the lower-case version of the package name)
+- `config` (the default value)
+
+For each of these pathnames, if the pathname ends with '.js' or '.json', then
+the file is read. Otherwise, each of these extensions is tried in order to read
+the config file.
+
+The configuration is then validated against the JSON schema.
 
 ## Motivation
 
 There are many Node.js configuration utilities available. Observed limitations are:
 
-1. Using the current working directory as a reference point when locating configuration files.
-2. Verifying that configuration files are well-formed, but not validating that the contents are correct.
+1. Using the current working directory as a reference point when locating
+   configuration files.
+2. Verifying that configuration files are well-formed, but not validating that
+   the contents are correct.
 
-Overcoming the first limitation is important for servers. Unlike simple Node.js programs that are typically run from the root package directory, servers are often run from a script. This script is started by some system initialization sequence. The current working directory is not necessarily the package root directory.
+Overcoming the first limitation is important for servers. Unlike simple Node.js
+programs that are typically run from the root package directory, servers are
+often run from a script. This script is started by some system initialization
+sequence. The current working directory is not necessarily the package root
+directory.
 
-Overcoming the second limitation is important because an application should be presented with a correct configuration object. Checking that a port number is an integer, the value of which is within a specific range, is the job of the configuration file reader, not the application.
+Overcoming the second limitation is important because an application should be
+presented with a correct configuration object. Checking that a port number is
+an integer, the value of which is within a specific range, is the job of the
+configuration file reader, not the application.
 
-The pkgconfig utility deals with these limitations in two ways. First, the directory of the module calling `require('pkgconfig')` is the base for finding the configuration directory. Second, the configuration file is validated using a required JSON schema.
+The pkgconfig utility deals with these limitations in two ways. First, the
+directory of the module calling `require('pkgconfig')` is the base for finding
+the configuration directory. Second, the configuration file is validated using
+a required JSON schema.
 
-## How It Works
 
-This section describes how pkgconfig finds the configuration directories and files.
+## License
 
-### Step 1 - Find the package.json file
-
-- Get the parent module pathname. This is the module calling `require('pkgconfig')`.
-- Get the directory portion of the parent module pathname.
-- Look for a `package.json` file in this directory.
-- If not found, get the parent directory and repeat the previous step.
-- Throw an error if not found.
-- If found, remember the package name and the package root directory.
-
-### Step 2 - Find the config directory
-
-- Look for a `config` directory in the package root directory.
-- Throw an error if not found.
-- If found, look for a `schema.js` or a `schema.json` file in this directory.
-- Throw an error if not found.
-- If the `NODE_CONFIG_DIR` environment variable is set, then let this be the directory for configuration files (not schema files, which must still be located in the package root `config` directory).
-
-### Step 3 - Find the configuration file
-
-- Look for a configuration file in the config directory from the previous step.
-- The following filenames are searched in order:
-    1. `<package.name>.js`
-    2. `<package.name>.json`
-    3. `<NODE_ENV>.js`
-    4. `<NODE_ENV>.json`
-    5. `config.js`
-    6. `config.json`
-- The files based on the `package.name` are searched first so multiple configuration files for various packages can be located in a common directory.
-- Throw an error if not found.
-
-### Step 4 - Validate and return the configuration data
-
-- Validate the configuration data read from the configuration file against the schema.
-- Throw an error is validation fails.
-- Return the configuration data.
-
-## License (MIT)
+(The MIT License)
 
 Copyright (c) 2012 Frank Hellwig
 
