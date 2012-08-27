@@ -12,7 +12,7 @@
         "type": "git",
         "url": "git://github.com/fhellwig/pkgconfig.git"
     },
-    "main": "./index.js",
+    "main": "./pkgconfig.js",
     "dependencies": {
         "jsvutil": "0.0.x"
     },
