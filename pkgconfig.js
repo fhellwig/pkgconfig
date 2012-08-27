@@ -108,7 +108,7 @@ function removeExtension(pathname) {
  */
 function getPackageBase() {
     var directory = path.dirname(module.parent.filename);
-    var pathname = util.findFile(directory, PACKAGE_FILE);
+    var pathname = findFile(directory, PACKAGE_FILE);
     if (pathname === null) {
         throw new Error('Package file not found: ' + PACKAGE_FILE);
     }
@@ -145,8 +145,8 @@ function getSchema(base, option) {
     if (typeof option === 'object') {
         return option;
     }
-    var pathname = util.removeExtension(path.resolve(base, option));
-    var schema = util.readFile(pathname);
+    var pathname = removeExtension(path.resolve(base, option));
+    var schema = readFile(pathname);
     if (schema === null) {
         throw new Error('Schema file not found: ' + pathname + '.(js|json)');
     }
@@ -163,8 +163,8 @@ function getConfig(base, option) {
     var directory = NODE_CONFIG_DIR || path.dirname(option);
     var filename = NODE_ENV || path.basename(option);
     var pathname = path.join(directory, filename);
-    pathname = util.removeExtension(path.resolve(base, pathname));
-    var config = util.readFile(pathname);
+    pathname = removeExtension(path.resolve(base, pathname));
+    var config = readFile(pathname);
     if (config === null) {
         throw new Error('Config file not found: ' + pathname + '.(js|json)');
     }
