@@ -56,12 +56,12 @@ following steps:
 1. Get the parent module (the module calling `require('pkgconfig')`).
 2. Get the directory part of the parent module's filename.
 3. Look for a `package.json` file in this directory.
-4. If found, let that be the *package-root* directory.
+4. If found, let that be the package base directory.
 5. Otherwise, get the parent directory (..) and go to step 3.
 
 This algorithm means that the module using `pkgconfig` need not be in the top
 level package directory. For example, if pkgconfig were used in a file located
-in the `lib` subdirectory, then pkgconfig will still find the package-root
+in the `lib` subdirectory, then pkgconfig will still find the package base
 directory (the one containing the `package.json` file) and look for the
 `config` directory in that package-root directory.
 
@@ -132,94 +132,47 @@ that evaluates the environment at runtime.
 
 ## Options
 
-The schema object or file and the configuration directory are specified by
-passing an options object to the `pkgconfig` function. The following example
-shows an options object configured with the default values:
+Be default, pkgconfig looks for the following schema and a configuration files:
+
+- `<package-base>/config/schema.(js|json)`
+- `<package-base>/config/config.(js|json)`
+
+These defaults can be changed by passing an options object to the `pkgconfig` function.
 
     var pkgconfig = require('pkgconfig');
 
     var options = {
-        schema: path.join('config', 'schema'),
-        config: 'config'
+        schema: <schema object or file pathname>,
+        config: <config object or file pathname>
     };
 
     var config = pkgconfig(options);
 
-The schema and config option can be any of the following:
+### Default options
 
-1. A JavaScript object literal.
-2. A relative or absolute pathname to a file (the '.js' or '.json' extension is optional).
-3. A relative or absolute directory name.
+If no options are passed to the `pkgconfig` function, the default values are:
 
-The schema and config options are processed using the following algorithm:
+- The default `schema` option is `path.join('config', 'schema')`.
+- The default `config` option is `path.join('config', 'config')`.
 
-1. If the option is an object literal, then it is used as-is. Stop.
-2. Resolve the option against the package-root directory (if the option is
-   already an absolute path, then this will not change the option).
-3. If the resulting absolute path is the pathname of a file (or if appending
-   '.js' or '.json' results in an absolute pathname to a file), then read that
-   file as a JSON object. Stop.
-4. Otherwise, the resulting absolute path *must* be a directory. Find the file
-   in that directory and read it as a JSON object. Stop.
+### Valid options
 
-Details for step four (4) in this algorithm (finding the file in a directory):
+Each option must be either a JavaScript object or the pathname to a file.
 
-*For the schema option:*
+- If the option is a JavaScript object, then it is used *as is*.
+- If the option is a relative pathname to a file, then it is resolved against
+  the package base directory.
+- If the option is has a filename extension, then the extension is ignored
+  since both `.js` and `.json` extensions are tried, in that order.
 
-- The schema file must be named `schema.js` or `schema.json`.
+For the `config` option, the following additional processing is performed:
 
-The way in which these are resolved will now be described.
+- If the `NODE_CONFIG_DIR` environment variable is set, it replaces the
+  directory portion of the `config` option.
 
-### Schema option resolution
-
-If the schema option is an object, then it is used 'as is' and no further
-resolution is performed. Otherwise, it must be a string.
-
-The value of this string is resolved against the package-root directory
-resulting in a pathname.
-
-If the resulting pathname is a file, or if appending '.js' or '.json'
-results in a pathname to a file, then it is read as the schema.
-
-Otherwise, 
-If the resolved path is a directory, then it is joined with the literal string
-'schema' to form the schema file pathname. Otherwise, it is assumed to be a
-schema file pathname.
-
-If the pathname ends with '.js' or '.json', then the file is read. Otherwise,
-each of these extensions is tried in order to read the schema file.
-
-Therefore, if no schema option is specified, then the following two default
-schema pathnames are tried:
-
-- `<package-root>/config/schema.js`
-- `<package-root>/config/schema.json`
-
-The schema is then checked to verify that is is a valid JSON schema.
-
-### Config option resolution
-
-If the CONFIG_DIR environment variable is set, then it is used instead of the
-config option. Otherwise, if the config option is an object, then it is used
-'as is' and no further resolution is performed. Otherwise, it must be a string.
-
-The value of the CONFIG_DIR environment variable (if set) or the value of the
-config option is resolved against the package-root directory.
-
-If the resolved path is a directory, then it is joined with the the following
-four basenames to arrive at four possible config file pathnames. Otherwise, it
-is assumed to be a config file pathname.
-
-- `<CONFIG_ENV>` (typically set to 'production' or 'development')
-- `<package-name>` (the package name from the `package.json` file)
-- `<package-name-lc>` (the lower-case version of the package name)
-- `config` (the default value)
-
-For each of these pathnames, if the pathname ends with '.js' or '.json', then
-the file is read. Otherwise, each of these extensions is tried in order to read
-the config file.
-
-The configuration is then validated against the JSON schema.
+- If the `NODE_ENV` environment variable is set, it replaces the filename
+  portion of the `config` option. Typically, this is set to `production` or
+  `testing`.
 
 ## Motivation
 
