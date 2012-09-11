@@ -23,10 +23,10 @@
 // Required modules
 var fs = require('fs');
 var path = require('path');
+var findpkg = require('findpkg');
 var jsvutil = require('jsvutil');
 
 // Pathname constants
-var PACKAGE_FILE = 'package.json';
 var DEFAULT_SCHEMA = path.join('config', 'schema');
 var DEFAULT_CONFIG = path.join('config', 'config');
 
@@ -39,24 +39,6 @@ var NODE_ENV = process.env['NODE_ENV'];
  */
 function isFile(pathname) {
     return fs.existsSync(pathname) && fs.statSync(pathname).isFile();
-}
-
-/**
- * Given a directory, tries to find the file in that directory. Tries the
- * parent directory if not found. Returns the pathname or null if not found.
- */
-function findFile(directory, filename) {
-    var current = directory;
-    var previous = null;
-    while (current !== previous) {
-        var pathname = path.join(current, filename);
-        if (isFile(pathname)) {
-            return pathname;
-        }
-        previous = current;
-        current = path.join(current, '..');
-    }
-    return null;
 }
 
 /**
@@ -104,24 +86,12 @@ function removeExtension(pathname) {
 }
 
 /**
- * Returns the directory for the package of the parent module.
- */
-function getPackageBase() {
-    var directory = path.dirname(module.parent.filename);
-    var pathname = findFile(directory, PACKAGE_FILE);
-    if (pathname === null) {
-        throw new Error('Package file not found: ' + PACKAGE_FILE);
-    }
-    return path.dirname(pathname);
-}
-
-/**
  * Validates the options argument passed to the pkgconfig function.
  * Returns an options object with the default values applied.
  */
 function validateOptions(options) {
     if (typeof options === 'undefined') {
-       options = {};
+        options = {};
     }
     return jsvutil.validate(options, {
         type: 'object',
@@ -175,7 +145,8 @@ function getConfig(base, option) {
  * The function exported by this module.
  */
 function pkgconfig(options) {
-    var base = getPackageBase();
+    var pkginfo = findpkg(module.parent);
+    var base = pkginfo.dirname;
     var options = validateOptions(options);
     var schema = getSchema(base, options.schema);
     var config = getConfig(base, options.config);
