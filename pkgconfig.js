@@ -25,6 +25,7 @@ var fs = require('fs');
 var path = require('path');
 var findpkg = require('findpkg');
 var jsvutil = require('jsvutil');
+var strformat = require('strformat');
 
 // Pathname constants
 var DEFAULT_SCHEMA = path.join('config', 'schema');
@@ -69,7 +70,10 @@ function readFile(pathname) {
             return null;
         }
     }
-    return readFile(pathname + '.js') || readFile(pathname + '.json');
+    if (ext === '') {
+        return readFile(pathname + '.js') || readFile(pathname + '.json');
+    }
+    throw new Error(strformat("Invalid file extension '{0}' in '{1}' (expected .js or .json)", ext, pathname));
 }
 
 /**
