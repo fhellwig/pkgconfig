@@ -20,19 +20,15 @@
  * IN THE SOFTWARE.
  */
 
-// Required modules
 var fs = require('fs');
 var path = require('path');
 var findpkg = require('findpkg');
 var jsvutil = require('jsvutil');
+var strformat = require('strformat');
 
-// Pathname constants
 var DEFAULT_SCHEMA = path.join('config', 'schema');
 var DEFAULT_CONFIG = path.join('config', 'config');
-
-// Environment variables
-var NODE_CONFIG_DIR = process.env['NODE_CONFIG_DIR'];
-var NODE_ENV = process.env['NODE_ENV'];
+var PKGCONFIG_FILE = process.env['PKGCONFIG_FILE'];
 
 /**
  * Returns true if the pathname exists and is a file.
@@ -69,7 +65,10 @@ function readFile(pathname) {
             return null;
         }
     }
-    return readFile(pathname + '.js') || readFile(pathname + '.json');
+    if (ext === '') {
+        return readFile(pathname + '.js') || readFile(pathname + '.json');
+    }
+    throw new Error(strformat("Invalid file extension '{0}' in '{1}' (expected .js or .json)", ext, pathname));
 }
 
 /**
@@ -86,14 +85,14 @@ function removeExtension(pathname) {
 }
 
 /**
- * Validates the options argument passed to the pkgconfig function.
+ * Processes the options argument passed to the pkgconfig function.
  * Returns an options object with the default values applied.
  */
-function validateOptions(options) {
+function processOptions(options) {
     if (typeof options === 'undefined') {
         options = {};
     }
-    return jsvutil.validate(options, {
+    options = jsvutil.validate(options, {
         type: 'object',
         properties: {
             schema: {
@@ -106,6 +105,9 @@ function validateOptions(options) {
             }
         }
     });
+    if (PKGCONFIG_FILE) {
+        options.config = PKGCONFIG_FILE;
+    }
 }
 
 /**
@@ -130,10 +132,7 @@ function getConfig(base, option) {
     if (typeof option === 'object') {
         return option;
     }
-    var directory = NODE_CONFIG_DIR || path.dirname(option);
-    var filename = NODE_ENV || path.basename(option);
-    var pathname = path.join(directory, filename);
-    pathname = removeExtension(path.resolve(base, pathname));
+    var pathname = removeExtension(path.resolve(base, option));
     var config = readFile(pathname);
     if (config === null) {
         throw new Error('Config file not found: ' + pathname + '.(js|json)');
@@ -147,7 +146,7 @@ function getConfig(base, option) {
 function pkgconfig(options) {
     var pkginfo = findpkg(module.parent);
     var base = pkginfo.dirname;
-    var options = validateOptions(options);
+    var options = processOptions(options);
     var schema = getSchema(base, options.schema);
     var config = getConfig(base, options.config);
     jsvutil.check(schema);
