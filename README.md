@@ -4,11 +4,15 @@ Reads and validates JSON configuration files for Node.js packages.
 
 ## Overview
 
-Applications often get their settings from configuration files. These files are usually structured as JSON text or JavaScript objects. Reading these files is easily accomplished. However, validating that the values are of the correct type or fall within an appropriate range should *not* be performed by application code. Reading configuration files and validating them against a JSON schema is the object of the pkgconfig utility.
+Applications often get their settings from configuration files. These files are usually structured as JSON text or JavaScript objects. Reading these files is easily accomplished. However, validating that the values are of the correct type or fall within an appropriate range should not be performed by application code. Reading configuration files and validating them against a JSON schema is the object of the pkgconfig utility.
 
 This package uses the [findpkg](https://github.com/fhellwig/findpkg) utility for finding the top-level package directory of the module requiring pkgconfig. It then looks for a `config` directory in this top-level directory. The `config` directory must contain a configuration file and a schema file. The configuration file is read and validated against the schema file using the [JSV](https://github.com/garycourt/JSV) implementation.
 
 ## Installation
+
+This section describes the installation of pkgconfig and the default directory layout.
+
+### Dependencies
 
 Add pkgconfig to your `package.json` depencencies and run `npm install`.
 
@@ -18,6 +22,8 @@ Add pkgconfig to your `package.json` depencencies and run `npm install`.
     }
 
     $ npm install
+
+### Layout
 
 Create a `config` directory in the top-level directory of your Node.js application. Add a `schema.json` and a `config.json` file to this directory.
 
@@ -30,7 +36,11 @@ Create a `config` directory in the top-level directory of your Node.js applicati
 
 ## Usage
 
-Require pkgconfig and call the function.
+This section describes the pkgconfig function, the default values, the options object, and environment variables.
+
+### Function
+
+Require pkgconfig and call the function returned from `require('pkgconfig')`.
 
 ```javascript
 var pkgconfig = require('pkgconfig');
@@ -39,12 +49,14 @@ var config = pkgconfig();
 
 This reads the `config.json` configuration file and validates it against the `schema.json` schema file.
 
-### Options
+### Defaults
 
 Be default, pkgconfig looks for the following schema and a configuration files:
 
 - `<your-package-base>/config/schema.(js|json)`
 - `<your-package-base>/config/config.(js|json)`
+
+### Options
 
 These defaults can be changed by passing an options object to the `pkgconfig` function.
 
@@ -59,7 +71,9 @@ var options = {
 var config = pkgconfig(options);
 ```
 
-Either property can be a JavaScript object or the pathname to a file (with or without an extension). If it is a pathname, then it is resolved against the requiring package's base directory unless the pathname begins with a dot (i.e., `./` or `../`) in which case it is resolved against the current working directory.
+Either one of these properties can be a JavaScript object or the pathname to a file (with or without an extension). If an options property is not specified, it falls back to the default value.
+
+If it is a pathname, then it is resolved against the requiring package's base directory unless the pathname begins with a dot (i.e., `./` or `../`) in which case it is resolved against the current working directory.
 
 ### Environment
 

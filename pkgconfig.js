@@ -28,129 +28,94 @@ var strformat = require('strformat');
 
 var DEFAULT_SCHEMA = path.join('config', 'schema');
 var DEFAULT_CONFIG = path.join('config', 'config');
+
 var PKGCONFIG_FILE = process.env['PKGCONFIG_FILE'];
 
+var OPTIONS_SCHEMA = {
+    type: 'object',
+    properties: {
+        schema: {
+            type: ['object', 'string'],
+            default: DEFAULT_SCHEMA
+        },
+        config: {
+            type: ['object', 'string'],
+            default: DEFAULT_CONFIG
+        }
+    }
+};
+
 /**
- * Returns true if the pathname exists and is a file.
+ * Returns true if the pathname identifies a file.
  */
 function isFile(pathname) {
     return fs.existsSync(pathname) && fs.statSync(pathname).isFile();
 }
 
 /**
- * Reads the file as either a JavaScript module or a JSON file.
- * Returns a JavaScript object or null if the file is not found.
+ * Reads and parses JSON file. If a syntax error occurs, the pathname is
+ * included in the error message.
+ */
+function readJsonFile(pathname) {
+    var json = fs.readFileSync(pathname, 'utf8');
+    try {
+        return JSON.parse(json);
+    } catch (err) {
+        if (err instanceof SyntaxError) {
+            err.message = strformat("{0} in '{1}'", err.message, pathname);
+        }
+        throw err;
+    }
+}
+
+/**
+ * Reads the file specified by the pathname. If the file does not exist,
+ * then .js and .json extensions are added. Returns a JavaScript object.
+ * Throws an error if the file is not found.
  */
 function readFile(pathname) {
+    var msg = ''; // additional error message info
     var ext = path.extname(pathname).toLowerCase();
     if (ext === '.js') {
         if (isFile(pathname)) {
             return require(pathname);
-        } else {
-            return null;
         }
-    }
-    if (ext === '.json') {
+    } else if (ext === '.json') {
         if (isFile(pathname)) {
-            var text = fs.readFileSync(pathname, 'utf8');
-            try {
-                return JSON.parse(text);
-            } catch (err) {
-                if (err instanceof SyntaxError) {
-                    err.message = err.message + ' in ' + pathname;
-                }
-                throw err;
-            }
-        } else {
-            return null;
+            return readJsonFile(pathname);
         }
-    }
-    if (ext === '') {
-        return readFile(pathname + '.js') || readFile(pathname + '.json');
-    }
-    throw new Error(strformat("Invalid file extension '{0}' in '{1}' (expected .js or .json)", ext, pathname));
-}
-
-/**
- * Removes any .js or .json extension from the specified pathname.
- */
-function removeExtension(pathname) {
-    var ext = path.extname(pathname);
-    var extlc = ext.toLowerCase();
-    if (extlc === '.js' || extlc === '.json') {
-        return path.basename(pathname, ext);
     } else {
-        return pathname;
-    }
-}
-
-/**
- * Processes the options argument passed to the pkgconfig function.
- * Returns an options object with the default values applied.
- */
-function processOptions(options) {
-    if (typeof options === 'undefined') {
-        options = {};
-    }
-    options = jsvutil.validate(options, {
-        type: 'object',
-        properties: {
-            schema: {
-                type: ['object', 'string'],
-                default: DEFAULT_SCHEMA
-            },
-            config: {
-                type: ['object', 'string'],
-                default: DEFAULT_CONFIG
-            }
+        if (isFile(pathname + '.js')) {
+            return require(pathname + '.js');
+        } else if (isFile(pathname + '.json')) {
+            return readJsonFile(pathname + '.json');
+        } else {
+            msg = ' (tried .js and .json)'; // note leading space
         }
-    });
-    if (PKGCONFIG_FILE) {
-        options.config = PKGCONFIG_FILE;
     }
-}
-
-/**
- * Processes the schema option.
- */
-function getSchema(base, option) {
-    if (typeof option === 'object') {
-        return option;
-    }
-    var pathname = removeExtension(path.resolve(base, option));
-    var schema = readFile(pathname);
-    if (schema === null) {
-        throw new Error('Schema file not found: ' + pathname + '.(js|json)');
-    }
-    return schema;
-}
-
-/**
- * Processes the config option.
- */
-function getConfig(base, option) {
-    if (typeof option === 'object') {
-        return option;
-    }
-    var pathname = removeExtension(path.resolve(base, option));
-    var config = readFile(pathname);
-    if (config === null) {
-        throw new Error('Config file not found: ' + pathname + '.(js|json)');
-    }
-    return config;
+    throw new Error(strformat("File not found '{0}'{1}", pathname, msg));
 }
 
 /**
  * The function exported by this module.
  */
 function pkgconfig(options) {
+    if (typeof options === 'undefined') {
+        options = {};
+    }
+    options = jsvutil.validate(options, OPTIONS_SCHEMA);
+    if (PKGCONFIG_FILE) {
+        options.config = PKGCONFIG_FILE;
+    }
     var pkginfo = findpkg(module.parent);
-    var base = pkginfo.dirname;
-    var options = processOptions(options);
-    var schema = getSchema(base, options.schema);
-    var config = getConfig(base, options.config);
-    jsvutil.check(schema);
-    jsvutil.validate(schema, config);
+    if (typeof options.schema === 'string') {
+        options.schema = readFile(pkginfo.resolve(options.schema));
+    }
+    if (typeof options.config === 'string') {
+        options.config = readFile(pkginfo.resolve(options.config));
+    }
+    jsvutil.check(options.schema);
+    jsvutil.validate(options.schema, options.config);
     return config;
 }
 
