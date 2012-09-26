@@ -115,8 +115,7 @@ function pkgconfig(options) {
         options.config = readFile(pkginfo.resolve(options.config));
     }
     jsvutil.check(options.schema);
-    jsvutil.validate(options.schema, options.config);
-    return config;
+    return jsvutil.validate(options.config, options.schema);
 }
 
 module.exports = pkgconfig;

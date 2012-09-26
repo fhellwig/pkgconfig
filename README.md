@@ -49,6 +49,8 @@ var config = pkgconfig();
 
 This reads the `config.json` configuration file and validates it against the `schema.json` schema file.
 
+Returns a configuration object. Throws an exception if there is an error reading the schema or configuration file or if the configuration data does not validate against the schema.
+
 ### Defaults
 
 Be default, pkgconfig looks for the following schema and a configuration files:
