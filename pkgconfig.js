@@ -27,9 +27,9 @@ var jsvutil = require('jsvutil');
 var strformat = require('strformat');
 
 var DEFAULT_SCHEMA = path.join('config', 'schema');
-var DEFAULT_CONFIG = path.join('config', 'config');
-
-var PKGCONFIG_FILE = process.env['PKGCONFIG_FILE'];
+var CONFIG_DIR = process.env['NODE_CONFIG_DIR'] || 'config'
+var CONFIG_ENV = process.env['NODE_ENV'] || 'config'
+var DEFAULT_CONFIG = path.join(CONFIG_DIR, CONFIG_ENV);
 
 var OPTIONS_SCHEMA = {
     type: 'object',
@@ -102,11 +102,12 @@ function readFile(pathname) {
 function pkgconfig(options) {
     if (typeof options === 'undefined') {
         options = {};
+    } else if (typeof options === 'string') {
+        options = {config: options};
+    } else if (typeof options !== 'object') {
+        throw new TypeError('options must be an object or a string');
     }
     options = jsvutil.validate(options, OPTIONS_SCHEMA);
-    if (PKGCONFIG_FILE) {
-        options.config = PKGCONFIG_FILE;
-    }
     var pkginfo = findpkg(module.parent);
     if (typeof options.schema === 'string') {
         options.schema = readFile(pkginfo.resolve(options.schema));

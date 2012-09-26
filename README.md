@@ -38,7 +38,7 @@ Create a `config` directory in the top-level directory of your Node.js applicati
 
 This section describes the pkgconfig function, the default values, the options object, and environment variables.
 
-### Function
+### Configuration Function
 
 Require pkgconfig and call the function returned from `require('pkgconfig')`.
 
@@ -51,14 +51,14 @@ This reads the `config.json` configuration file and validates it against the `sc
 
 Returns a configuration object. Throws an exception if there is an error reading the schema or configuration file or if the configuration data does not validate against the schema.
 
-### Defaults
+### Default Values
 
 Be default, pkgconfig looks for the following schema and a configuration files:
 
 - `<your-package-base>/config/schema.(js|json)`
 - `<your-package-base>/config/config.(js|json)`
 
-### Options
+### Options Parameter
 
 These defaults can be changed by passing an options object to the `pkgconfig` function.
 
@@ -73,17 +73,36 @@ var options = {
 var config = pkgconfig(options);
 ```
 
-Either one of these properties can be a JavaScript object or the pathname to a file (with or without an extension). If an options property is not specified, it falls back to the default value.
+#### Notes:
 
-If it is a pathname, then it is resolved against the requiring package's base directory unless the pathname begins with a dot (i.e., `./` or `../`) in which case it is resolved against the current working directory.
+1. Either one of these properties can be a JavaScript object or the pathname to a file (with or without an extension). If an options property is not specified, it falls back to the default value.
+2. If it is a pathname, then it is resolved against the requiring package's base directory unless the pathname begins with a dot (i.e., `./` or `../`) in which case it is resolved against the current working directory.
+3. If the options parameter is a string instead of an object, then it is used as the `config` option filename and the `schema` option defaults to its default value. 
 
-### Environment
+### Environment Variables
 
-The `PKGCONFIG_FILE` environment variable overrides the default configuration file pathname and any pathname specified in the options object. The `PKGCONFIG_FILE` environment variable has no effect on the schema file location since this should not be user-configurable.
+The following two environment variables change the default config option.
 
-### Extensions
+1. The `NODE_CONFIG_DIR` environment variable changes the default config directory unless explicitly specified by the options.
+2. The `NODE_ENV` environment variable changes the default config filename (basename) unless explicitly specified by the options.
 
-Both `.js` and `.json` files are valid schema and configuration file extensions and are tried in that order if no extension is specified. If a JavaScript file is used for either the schema or the configuration file, then the object must be exported using the `module.exports` variable.
+#### Notes:
+
+1. The environment variables only effect the default config option. If this option is explicitly specified in the options object, then the environment variables are not used.
+2. The environment variables have no effect on the schema file location since this must not be user-configurable.
+
+The following code snippet summarizes how the environment variables are used. Again, note how they only effect the configuration file, and not the schema file.
+
+```javascript
+var DEFAULT_SCHEMA = path.join('config', 'schema');
+var CONFIG_DIR = process.env['NODE_CONFIG_DIR'] || 'config'
+var CONFIG_ENV = process.env['NODE_ENV'] || 'config'
+var DEFAULT_CONFIG = path.join(CONFIG_DIR, CONFIG_ENV);
+```
+
+### Filename Extensions
+
+Both `.js` and `.json` files are valid schema and configuration file extensions and are tried in that order if the schema or config filename (after resolution) does not identify a file. If a JavaScript file is used for either the schema or the configuration file, then the object must be exported using the `module.exports` variable.
 
 ## Example
 
@@ -93,29 +112,32 @@ configuration file that is valid against the schema.
 ### Sample schema.json file
 
 This is a sample JSON schema file that requires a port number having a range of
-one to 65,535 and having a default value of 80. The pkgconfig utility uses the
-[JSV](https://github.com/garycourt/JSV) JSON Schema Validator.
+one to 65,535 and having a default value of 80.
 
-    {
-        "properties": {
-            "port": {
-                "description": "The web server port number.",
-                "type": "integer",
-                "required": true,
-                "minimum": 1,
-                "maximum": 65535,
-                "default": 80
-            }
+```json
+{
+    "properties": {
+        "port": {
+            "description": "The web server port number.",
+            "type": "integer",
+            "required": true,
+            "minimum": 1,
+            "maximum": 65535,
+            "default": 80
         }
     }
+}
+```
 
 ### Sample config.json file
 
 This is a sample JSON configuration file that specifies the port as being 8080.
 
-    {
-        "port": 8080
-    }
+```json
+{
+    "port": 8080
+}
+```
 
 ### Alternate file format
 
@@ -124,28 +146,32 @@ JavaScript files can be used instead of JSON files by simple setting the
 
 A `schema.js` file can be used instead of the `schema.json` file.
 
-    var schema = {
-        properties: {
-            port: {
-                description: 'The web server port number.',
-                type: 'integer',
-                required: true,
-                minimum: 1,
-                maximum: 65535,
-                default: 80
-            }
+```javascript
+var schema = {
+    properties: {
+        port: {
+            description: 'The web server port number.',
+            type: 'integer',
+            required: true,
+            minimum: 1,
+            maximum: 65535,
+            default: 80
         }
-    };
+    }
+};
 
-    module.exports = schema;
+module.exports = schema;
+```
 
 A `config.js` file can be used instead of the `config.json` file.
 
-    var config = {
-        port: 8080
-    };
+```javascript
+var config = {
+    port: 8080
+};
 
-    module.exports = config;
+module.exports = config;
+```
 
 Beyond notational convenience, this also allows for nested constructs or code
 that evaluates the environment at runtime.
