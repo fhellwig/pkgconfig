@@ -90,33 +90,43 @@ function readFile(pathname) {
         } else if (isFile(pathname + '.json')) {
             return readJsonFile(pathname + '.json');
         } else {
-            msg = ' (tried .js and .json)'; // note leading space
+            msg = '(.js|.json)';
         }
     }
-    throw new Error(strformat("File not found '{0}'{1}", pathname, msg));
+    throw new Error(strformat("File not found '{0}{1}'", pathname, msg));
+}
+
+/**
+ * Process the options parameter and return a valid options object.
+ */
+function processOptions(options) {
+    var opt;
+    if (typeof options === 'object') {
+        opt = options;
+    } else if (typeof options === 'string') {
+        opt = {config: options};
+    } else if (typeof options === 'undefined') {
+        opt = {}; // use default values in options schema
+    } else {
+        throw new TypeError('options must be an object or a string');
+    }
+    return jsvutil.validate(opt, OPTIONS_SCHEMA);
 }
 
 /**
  * The function exported by this module.
  */
 function pkgconfig(options) {
-    if (typeof options === 'undefined') {
-        options = {};
-    } else if (typeof options === 'string') {
-        options = {config: options};
-    } else if (typeof options !== 'object') {
-        throw new TypeError('options must be an object or a string');
-    }
-    options = jsvutil.validate(options, OPTIONS_SCHEMA);
+    var opt = processOptions(options);
     var pkginfo = findpkg(module.parent);
-    if (typeof options.schema === 'string') {
-        options.schema = readFile(pkginfo.resolve(options.schema));
+    if (typeof opt.schema === 'string') {
+        opt.schema = readFile(pkginfo.resolve(opt.schema));
     }
-    if (typeof options.config === 'string') {
-        options.config = readFile(pkginfo.resolve(options.config));
+    if (typeof opt.config === 'string') {
+        opt.config = readFile(pkginfo.resolve(opt.config));
     }
-    jsvutil.check(options.schema);
-    return jsvutil.validate(options.config, options.schema);
+    jsvutil.check(opt.schema);
+    return jsvutil.validate(opt.config, opt.schema);
 }
 
 module.exports = pkgconfig;
