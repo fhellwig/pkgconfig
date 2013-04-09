@@ -84,7 +84,7 @@ var config = pkgconfig(options);
 The following two environment variables change the default config option.
 
 1. The `NODE_CONFIG_DIR` environment variable changes the default config directory unless explicitly specified by the options.
-2. The `NODE_ENV` environment variable changes the default config filename (basename) unless explicitly specified by the options.
+2. The `NODE_ENV` environment variable changes the default config filename (basename) unless explicitly specified by the options. If this is an absolute path, then the `NODE_CONFIG_DIR` value is ignored.
 
 #### Notes:
 
@@ -97,7 +97,7 @@ The following code snippet summarizes how the environment variables are used. Ag
 var DEFAULT_SCHEMA = path.join('config', 'schema');
 var CONFIG_DIR = process.env['NODE_CONFIG_DIR'] || 'config'
 var CONFIG_ENV = process.env['NODE_ENV'] || 'config'
-var DEFAULT_CONFIG = path.join(CONFIG_DIR, CONFIG_ENV);
+var DEFAULT_CONFIG = path.resolve(CONFIG_DIR, CONFIG_ENV);
 ```
 
 ### Filename Extensions

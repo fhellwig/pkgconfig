@@ -29,7 +29,7 @@ var strformat = require('strformat');
 var DEFAULT_SCHEMA = path.join('config', 'schema');
 var CONFIG_DIR = process.env['NODE_CONFIG_DIR'] || 'config'
 var CONFIG_ENV = process.env['NODE_ENV'] || 'config'
-var DEFAULT_CONFIG = path.join(CONFIG_DIR, CONFIG_ENV);
+var DEFAULT_CONFIG = path.resolve(CONFIG_DIR, CONFIG_ENV);
 
 var OPTIONS_SCHEMA = {
     type: 'object',
