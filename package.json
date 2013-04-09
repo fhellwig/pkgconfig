@@ -1,6 +1,6 @@
 {
     "name": "pkgconfig",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "description": "Reads and validates JSON configuration files for Node.js packages.",
     "keywords": ["config","json","schema"],
     "licenses": [{
