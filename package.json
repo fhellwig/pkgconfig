@@ -1,8 +1,8 @@
 {
-    "name": "pkgconfig",
-    "version": "0.0.5",
-    "description": "Reads and validates JSON configuration files for Node.js packages.",
-    "keywords": ["config","json","schema"],
+    "name": "appconfig",
+    "version": "0.0.6",
+    "description": "A configuration file manager for node.js applications.",
+    "keywords": ["application","configuration"],
     "licenses": [{
         "type": "MIT",
         "url": "http://www.opensource.org/licenses/MIT"
@@ -10,17 +10,9 @@
     "author": "Frank Hellwig <frank@hellwig.org>",
     "repository": {
         "type": "git",
-        "url": "git://github.com/fhellwig/pkgconfig.git"
+        "url": "https://github.com/fhellwig/pkgconfig.git"
     },
     "main": "./pkgconfig.js",
-    "scripts": {
-        "test": "node ./test/test.js"
-    },
-    "dependencies": {
-        "findpkg": "0.0.x",
-        "jsvutil": "0.0.x",
-        "strformat": "0.0.x"
-    },
     "engine": {
         "node": ">=0.8"
     }

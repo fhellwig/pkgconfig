@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Frank Hellwig
+ * Copyright (c) 2014 Frank Hellwig
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -20,113 +20,132 @@
  * IN THE SOFTWARE.
  */
 
-var fs = require('fs');
-var path = require('path');
-var findpkg = require('findpkg');
-var jsvutil = require('jsvutil');
-var strformat = require('strformat');
+var path = require('path'),
+    util = require('util');
 
-var DEFAULT_SCHEMA = path.join('config', 'schema');
-var CONFIG_DIR = process.env['NODE_CONFIG_DIR'] || 'config'
-var CONFIG_ENV = process.env['NODE_ENV'] || 'config'
-var DEFAULT_CONFIG = path.resolve(CONFIG_DIR, CONFIG_ENV);
+function getType(val) {
+    // Returns the type of the specified value but returns 'array'
+    // instead of 'object' if the specified value is an array.
+    return util.isArray(val) ? 'array' : typeof val;
+}
 
-var OPTIONS_SCHEMA = {
-    type: 'object',
-    properties: {
-        schema: {
-            type: ['object', 'string'],
-            default: DEFAULT_SCHEMA
-        },
-        config: {
-            type: ['object', 'string'],
-            default: DEFAULT_CONFIG
+function merge(target, source) {
+    // Merges the target with values from the source.
+    var props = Object.getOwnPropertyNames(target);
+    props.forEach(function(name) {
+        var s = getType(source[name]);
+        if (s !== 'undefined') {
+            var t = getType(target[name]);
+            if (t !== s) {
+                throw new Error("Type mismatch between '" + t + "' and '" + s + "' for '" + name + "'.");
+            }
+            if (t === 'object') {
+                merge(target[name], source[name]);
+            } else {
+                target[name] = source[name];
+            }
+        }
+    });
+}
+
+function checkObject(val) {
+    // Checks that the specified value is an object and throws an exception
+    // if it is not an object. Arrays are not considered objects.
+    var type = getType(val);
+    if (type !== 'object') {
+        throw new Error("Expected an object instead of '" + val + "' (" + type + ").");
+    }
+}
+
+function loadModule(pathname) {
+    // Loads the module specified by the pathname. If the module is not found,
+    // then this function returns null. Otherwise, there was an error loading
+    // the module and an exception is thrown.
+    try {
+        return require(pathname);
+    } catch (err) {
+        if (err.code === 'MODULE_NOT_FOUND') {
+            return null;
+        } else {
+            throw err;
+        }
+    }
+}
+
+function loadConfig(pathname) {
+    // Loads the configuration module specified by the pathname.
+    // An exception is thrown if the module is not found, cannot
+    // be read, or is not an object. Returns the object.
+    var retval = loadModule(pathname);
+    if (retval === null) {
+        throw new Error("Cannot find the '" + pathname + ".(js|json)' configuration file.");
+    }
+    checkObject(retval);
+    return retval;
+}
+
+function getApplicationInfo() {
+    // Finds the package.json file and returns an object having the following
+    // two properties: name and directory. The name property is the name from
+    // the package.json file. The directory property is the location of the
+    // package.json file.
+    var maindir = path.dirname(require.main.filename),
+        current = maindir;
+    while (true) {
+        var filename = path.resolve(current, 'package.json');
+        var package = loadModule(filename);
+        if (package) {
+            if (!package.name) {
+                throw new Error("Cannot find property 'name' in '" + filename + "'.");
+            }
+            return {
+                name: package.name,
+                directory: current
+            };
+        }
+        var parent = path.resolve(current, '..');
+        if (current == parent) {
+            throw new Error("Cannot find 'package.json' in '" + maindir + "' nor any of its parent directories.");
+        }
+        current = parent;
+    }
+}
+
+function getConfigObject() {
+    // Loads the master configuration file and merges it with the
+    // deployment-specific configuration file if different.
+    var app = getApplicationInfo(),
+        directory = path.resolve(app.directory, './config'),
+        filename = app.name,
+        pathname = path.resolve(directory, filename),
+        config = loadConfig(pathname);
+    if (process.env.NODE_CONFIG_DIR) {
+        directory = path.resolve(app.directory, process.env.NODE_CONFIG_DIR);
+    }
+    if (process.env.NODE_ENV) {
+        filename = app.name + '.' + process.env.NODE_ENV;
+    }
+    var extend = path.resolve(directory, filename);
+    if (pathname !== extend) {
+        merge(config, loadConfig(extend));
+    }
+    return config;
+}
+
+module.exports = function(callback) {
+    try {
+        var config = getConfigObject();
+        if (typeof callback === 'function') {
+            callback(null, config);
+            return;
+        } else {
+            return config;
+        }
+    } catch (err) {
+        if (typeof callback === 'function') {
+            callback(err, null);
+        } else {
+            throw err;
         }
     }
 };
-
-/**
- * Returns true if the pathname identifies a file.
- */
-function isFile(pathname) {
-    return fs.existsSync(pathname) && fs.statSync(pathname).isFile();
-}
-
-/**
- * Reads and parses JSON file. If a syntax error occurs, the pathname is
- * included in the error message.
- */
-function readJsonFile(pathname) {
-    var json = fs.readFileSync(pathname, 'utf8');
-    try {
-        return JSON.parse(json);
-    } catch (err) {
-        if (err instanceof SyntaxError) {
-            err.message = strformat("{0} in '{1}'", err.message, pathname);
-        }
-        throw err;
-    }
-}
-
-/**
- * Reads the file specified by the pathname. If the file does not exist,
- * then .js and .json extensions are added. Returns a JavaScript object.
- * Throws an error if the file is not found.
- */
-function readFile(pathname) {
-    var msg = ''; // additional error message info
-    var ext = path.extname(pathname).toLowerCase();
-    if (ext === '.js') {
-        if (isFile(pathname)) {
-            return require(pathname);
-        }
-    } else if (ext === '.json') {
-        if (isFile(pathname)) {
-            return readJsonFile(pathname);
-        }
-    } else {
-        if (isFile(pathname + '.js')) {
-            return require(pathname + '.js');
-        } else if (isFile(pathname + '.json')) {
-            return readJsonFile(pathname + '.json');
-        } else {
-            msg = '(.js|.json)';
-        }
-    }
-    throw new Error(strformat("File not found '{0}{1}'", pathname, msg));
-}
-
-/**
- * Process the options parameter and return a valid options object.
- */
-function processOptions(options) {
-    var opt;
-    if (typeof options === 'object') {
-        opt = options;
-    } else if (typeof options === 'string') {
-        opt = {config: options};
-    } else if (typeof options === 'undefined') {
-        opt = {}; // use default values in options schema
-    } else {
-        throw new TypeError('options must be an object or a string');
-    }
-    return jsvutil.validate(opt, OPTIONS_SCHEMA);
-}
-
-/**
- * The function exported by this module.
- */
-function pkgconfig(options) {
-    var opt = processOptions(options);
-    var pkginfo = findpkg(module.parent);
-    if (typeof opt.schema === 'string') {
-        opt.schema = readFile(pkginfo.resolve(opt.schema));
-    }
-    if (typeof opt.config === 'string') {
-        opt.config = readFile(pkginfo.resolve(opt.config));
-    }
-    jsvutil.check(opt.schema);
-    return jsvutil.validate(opt.config, opt.schema);
-}
-
-module.exports = pkgconfig;
