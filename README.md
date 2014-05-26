@@ -12,7 +12,7 @@ Overall approach:
 - Both JavaScript `(.js)` and JSON `(.json)` configuration files are acceptable.
 
 The previous version (0.0.5) of this utility used JSON schema validation.
-The current version (0.0.6) uses the much simpler template-override approach
+The current version (0.1.x) uses the much simpler template-override approach
 by merging a deployment-specific file with the master configuration file.
 
 This package does not depend on any other packages.
@@ -21,13 +21,13 @@ This package does not depend on any other packages.
 
 ### 1.1 Installation
 
-```
+```no-highlight
 npm install pkgconfig
 ```
 
 or
 
-```
+```no-highlight
 "dependencies": {
     "pkgconfig": "0.1.x",
     ...
@@ -36,7 +36,7 @@ or
 
 ### 1.2 Setup
 
-```
+```no-highlight
 myapp/
     package.json
     config/
@@ -60,7 +60,7 @@ your `package.json` file. Then, create a `<name>.js` or `<name>.json`
 configuration file in the `config` directory where `<name>` is the
 value of the `name` property in your `package.json` file.
 
-```
+```no-highlight
 myapp/
     server.js
     package.json  <-- "name": "myapp"
@@ -104,7 +104,7 @@ file such as `server.js`. For example, you could have a `lib` directory
 containing an `app.js` file. The `config` directory in the top-level directory
 (the one containing your `package.json` file) is still found and used.
 
-```
+```no-highlight
 myapp/
     server.js
     package.json  <-- "name": "myapp"
@@ -132,7 +132,7 @@ the settings in the `myapp.js` configuration file.
 
 Here is the application with two configuration files:
 
-```
+```no-highlight
 myapp/
     server.js
     package.json
@@ -194,14 +194,14 @@ For example, if the value of `NODE_CONFIG_DIR` is `/etc` and the value of
 configuration file is loaded *and merged* with the master configuration
 file in the `config` directory.
 
-```
+```no-highlight
 /etc/myapp.production.js
 ```
 
 If `NODE_ENV` were not set in this case, then the following configuration file
 is merged with the master configuration file.
 
-```
+```no-highlight
 /etc/myapp.js
 ```
 
