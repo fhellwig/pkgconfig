@@ -1,5 +1,5 @@
 {
-    "name": "appconfig",
+    "name": "pkgconfig",
     "version": "0.0.6",
     "description": "A configuration file manager for node.js applications.",
     "keywords": ["application","configuration"],
