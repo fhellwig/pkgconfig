@@ -21,21 +21,27 @@ This package does not depend on any other packages.
 
 ### 1.1 Installation
 
-    npm install pkgconfig
+```
+npm install pkgconfig
+```
 
 or
 
-    "dependencies": {
-        "pkgconfig": "0.x",
-        ...
-    }
+```
+"dependencies": {
+    "pkgconfig": "0.1.x",
+    ...
+}
+```
 
 ### 1.2 Setup
 
-    myapp/
-        package.json
-        config/
-            myapp.json
+```
+myapp/
+    package.json
+    config/
+        myapp.json
+```
 
 ### 1.3 Usage
 
@@ -44,7 +50,6 @@ var pkgconfig = require('pkgconfig'),
     config = pkgconfig();
 // Use the config object...
 ```
-
 
 ## 2. Detailed Instructions
 
@@ -55,11 +60,13 @@ your `package.json` file. Then, create a `<name>.js` or `<name>.json`
 configuration file in the `config` directory where `<name>` is the
 value of the `name` property in your `package.json` file.
 
-    myapp/
-        server.js
-        package.json  <-- "name": "myapp"
-        config/
-            myapp.js  <-- can also be myapp.json
+```
+myapp/
+    server.js
+    package.json  <-- "name": "myapp"
+    config/
+        myapp.js  <-- can also be myapp.json
+```
 
 In your `server.js` file, get your configurations settings using either the
 simple approach discussed in the *Quick Start* section above or one of the
@@ -97,13 +104,15 @@ file such as `server.js`. For example, you could have a `lib` directory
 containing an `app.js` file. The `config` directory in the top-level directory
 (the one containing your `package.json` file) is still found and used.
 
-    myapp/
-        server.js
-        package.json  <-- "name": "myapp"
-        lib/
-            app.js    <-- requires and calls pkgconfig
-        config/
-            myapp.js  <-- this file is still used
+```
+myapp/
+    server.js
+    package.json  <-- "name": "myapp"
+    lib/
+        app.js    <-- requires and calls pkgconfig
+    config/
+        myapp.js  <-- this file is still used
+```
 
 ### 2.2 Deployment-Specific Configuration File
 
@@ -123,12 +132,14 @@ the settings in the `myapp.js` configuration file.
 
 Here is the application with two configuration files:
 
-    myapp/
-        server.js
-        package.json
-        config/
-            myapp.js            <-- always loaded
-            myapp.production.js <-- loaded if NODE_ENV = production
+```
+myapp/
+    server.js
+    package.json
+    config/
+        myapp.js            <-- always loaded
+        myapp.production.js <-- loaded if NODE_ENV = production
+```
 
 Here is the `myapp.js` file:
 
@@ -183,12 +194,16 @@ For example, if the value of `NODE_CONFIG_DIR` is `/etc` and the value of
 configuration file is loaded *and merged* with the master configuration
 file in the `config` directory.
 
-    /etc/myapp.production.js
+```
+/etc/myapp.production.js
+```
 
 If `NODE_ENV` were not set in this case, then the following configuration file
 is merged with the master configuration file.
 
-    /etc/myapp.js
+```
+/etc/myapp.js
+```
 
 **Please note:** The directory specified by the `NODE_CONFIG_DIR` environment
 variable is resolved against the application directory. Therefore, if is not
