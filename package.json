@@ -13,6 +13,9 @@
         "url": "https://github.com/fhellwig/pkgconfig.git"
     },
     "main": "./pkgconfig.js",
+    "dependencies": {
+        "pkgfinder": "1.0.x"
+    },
     "engine": {
         "node": ">=0.8"
     }
