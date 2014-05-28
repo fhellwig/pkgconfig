@@ -1,6 +1,6 @@
 {
     "name": "pkgconfig",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "A configuration file manager for node.js applications.",
     "keywords": ["application","configuration"],
     "licenses": [{

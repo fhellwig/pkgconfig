@@ -15,8 +15,6 @@ The previous version (0.0.5) of this utility used JSON schema validation.
 The current version uses the much simpler template-override approach
 by merging a deployment-specific file with the default configuration file.
 
-This package does not depend on any other packages.
-
 ## 1. Quick Start
 
 ### 1.1 Installation
