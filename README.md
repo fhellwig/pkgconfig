@@ -5,15 +5,15 @@ A configuration file manager for node.js applications.
 
 Overall approach:
 
-- The name of the master configuration file is determined by the `name` property from your application's `package.json` file.
-- The master configuration file must be located in the `config` directory at the top-level of your application (the directory containing your `package.json` file).
+- The name of the default configuration file is determined by the `name` property from your application's `package.json` file.
+- The default configuration file must be located in the `config` directory at the top-level of your application (the directory containing your `package.json` file).
 - An additional deployment-specific configuration file is found using the values of the `NODE_ENV` and the `NODE_CONFIG_DIR` environment variables.
-- This additional deployment-specific configuration file is merged with the master configuration file.
+- This additional deployment-specific configuration file is merged with the default configuration file.
 - Both JavaScript `(.js)` and JSON `(.json)` configuration files are acceptable.
 
 The previous version (0.0.5) of this utility used JSON schema validation.
-The current version (0.1.x) uses the much simpler template-override approach
-by merging a deployment-specific file with the master configuration file.
+The current version uses the much simpler template-override approach
+by merging a deployment-specific file with the default configuration file.
 
 This package does not depend on any other packages.
 
@@ -53,7 +53,7 @@ var pkgconfig = require('pkgconfig'),
 
 ## 2. Detailed Instructions
 
-### 2.1 Master Configuration File
+### 2.1 Default Configuration File
 
 In your application, create a `config` directory at the same level as
 your `package.json` file. Then, create a `<name>.js` or `<name>.json`
@@ -119,14 +119,14 @@ myapp/
 The `NODE_ENV` and `NODE_CONFIG_DIR` environment variables determine the name
 and location of your application's deployment-specific configuration file.
 Both of these are optional. If neither environment variable is set, then only
-the master configuration file is used.
+the default configuration file is used.
 
 #### 2.2.1 NODE_ENV
 
 The `NODE_ENV` environment variable specifies the run time environment such as
 development or production. If the `NODE_ENV` environment variable is set, then
 a `<name>.<NODE_ENV>.(js|json)` configuration file is loaded and merged with
-the master configuration file. For example, if the value of `NODE_ENV` is set
+the default configuration file. For example, if the value of `NODE_ENV` is set
 to `production`, then the settings in `myapp.production.js` are merged with
 the settings in the `myapp.js` configuration file. 
 
@@ -191,7 +191,7 @@ If the `NODE_CONFIG_DIR` environment variable is set, then this directory
 determines the location of the deployment-specific configuration file.
 For example, if the value of `NODE_CONFIG_DIR` is `/etc` and the value of
 `NODE_ENV` is `production`, then the following deployment-specific
-configuration file is loaded *and merged* with the master configuration
+configuration file is loaded *and merged* with the default configuration
 file in the `config` directory.
 
 ```no-highlight
@@ -199,7 +199,7 @@ file in the `config` directory.
 ```
 
 If `NODE_ENV` were not set in this case, then the following configuration file
-is merged with the master configuration file.
+is merged with the default configuration file.
 
 ```no-highlight
 /etc/myapp.js

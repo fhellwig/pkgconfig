@@ -21,7 +21,8 @@
  */
 
 var path = require('path'),
-    util = require('util');
+    util = require('util'),
+    pkgfinder = require('pkgfinder');;
 
 function getType(val) {
     // Returns the type of the specified value but returns 'array'
@@ -57,73 +58,35 @@ function checkObject(val) {
     }
 }
 
-function loadModule(pathname) {
-    // Loads the module specified by the pathname. If the module is not found,
-    // then this function returns null. Otherwise, there was an error loading
-    // the module and an exception is thrown.
+function loadConfig(pathname) {
+    // Loads the configuration module specified by the pathname.
+    // An exception is thrown if the module is not found, cannot
+    // be read, or is not an object. Returns the object.
     try {
-        return require(pathname);
+        var config = require(pathname);
+        checkObject(config);
+        return config;
     } catch (err) {
         if (err.code === 'MODULE_NOT_FOUND') {
-            return null;
+            throw new Error("Cannot find the '" + pathname + ".(js|json)' configuration file.");
         } else {
             throw err;
         }
     }
 }
 
-function loadConfig(pathname) {
-    // Loads the configuration module specified by the pathname.
-    // An exception is thrown if the module is not found, cannot
-    // be read, or is not an object. Returns the object.
-    var retval = loadModule(pathname);
-    if (retval === null) {
-        throw new Error("Cannot find the '" + pathname + ".(js|json)' configuration file.");
-    }
-    checkObject(retval);
-    return retval;
-}
-
-function getApplicationInfo() {
-    // Finds the package.json file and returns an object having the following
-    // two properties: name and directory. The name property is the name from
-    // the package.json file. The directory property is the location of the
-    // package.json file.
-    var maindir = path.dirname(require.main.filename),
-        current = maindir;
-    while (true) {
-        var filename = path.resolve(current, 'package.json');
-        var package = loadModule(filename);
-        if (package) {
-            if (!package.name) {
-                throw new Error("Cannot find property 'name' in '" + filename + "'.");
-            }
-            return {
-                name: package.name,
-                directory: current
-            };
-        }
-        var parent = path.resolve(current, '..');
-        if (current == parent) {
-            throw new Error("Cannot find 'package.json' in '" + maindir + "' nor any of its parent directories.");
-        }
-        current = parent;
-    }
-}
-
 function getConfigObject() {
     // Loads the master configuration file and merges it with the
     // deployment-specific configuration file if different.
-    var app = getApplicationInfo(),
-        directory = path.resolve(app.directory, './config'),
-        filename = app.name,
+    var directory = path.resolve(pkgfinder.directory, './config'),
+        filename = pkgfinder.name,
         pathname = path.resolve(directory, filename),
         config = loadConfig(pathname);
     if (process.env.NODE_CONFIG_DIR) {
-        directory = path.resolve(app.directory, process.env.NODE_CONFIG_DIR);
+        directory = path.resolve(pkgfinder.directory, process.env.NODE_CONFIG_DIR);
     }
     if (process.env.NODE_ENV) {
-        filename = app.name + '.' + process.env.NODE_ENV;
+        filename = pkgfinder.name + '.' + process.env.NODE_ENV;
     }
     var extend = path.resolve(directory, filename);
     if (pathname !== extend) {
