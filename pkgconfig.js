@@ -22,7 +22,7 @@
 
 var path = require('path'),
     util = require('util'),
-    pkgfinder = require('pkgfinder');;
+    pkgfinder = require('pkgfinder');
 
 function getType(val) {
     // Returns the type of the specified value but returns 'array'
@@ -78,15 +78,16 @@ function loadConfig(pathname) {
 function getConfigObject() {
     // Loads the master configuration file and merges it with the
     // deployment-specific configuration file if different.
-    var directory = path.resolve(pkgfinder.directory, './config'),
-        filename = pkgfinder.name,
+    var pkg = pkgfinder(),
+        directory = path.resolve(pkg.directory, './config'),
+        filename = pkg.name,
         pathname = path.resolve(directory, filename),
         config = loadConfig(pathname);
     if (process.env.NODE_CONFIG_DIR) {
-        directory = path.resolve(pkgfinder.directory, process.env.NODE_CONFIG_DIR);
+        directory = path.resolve(pkg.directory, process.env.NODE_CONFIG_DIR);
     }
     if (process.env.NODE_ENV) {
-        filename = pkgfinder.name + '.' + process.env.NODE_ENV;
+        filename = pkg.name + '.' + process.env.NODE_ENV;
     }
     var extend = path.resolve(directory, filename);
     if (pathname !== extend) {
