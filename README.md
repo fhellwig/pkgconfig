@@ -27,7 +27,7 @@ or
 
 ```no-highlight
 "dependencies": {
-    "pkgconfig": "0.1.x",
+    "pkgconfig": "1.x.x",
     ...
 }
 ```
