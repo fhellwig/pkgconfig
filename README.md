@@ -2,14 +2,13 @@
 
 A configuration file manager for node.js applications.
 
-##Installation
+##1. Installation
 
 Add `pkgconfig` as a dependency in your `package.json` file.
 
 ```json
 "dependencies": {
-    "pkgconfig": "2.x.x",
-    ...
+    "pkgconfig": "2.x.x"
 }
 ```
 
@@ -17,14 +16,14 @@ Add `pkgconfig` as a dependency in your `package.json` file.
 $ npm install
 ```
 
-##Quick Start
+##2. Quick Start
 
 Create an `etc` directory in your application.
 
 ```no-highlight
 myapp/
     server.js
-    package.json               <-- name property = 'myapp'
+    package.json               <-- "name": "myapp"
     etc/                       <-- this directory must exist
 ```
 
@@ -33,18 +32,18 @@ Create a `.json` default configuration file.
 ```no-highlight
 myapp/
     server.js
-    package.json               <-- name property = 'myapp'
+    package.json               <-- "name": "myapp"
     etc/                       <-- this directory must exist
         myapp.default.json     <-- this file must exist
 ```
 
-Create one or more deployment-specific configuration file.
+Create one or more deployment-specific configuration files.
 The `NODE_ENV` environment variable determines which file is used.
 
 ```no-highlight
 myapp/
     server.js
-    package.json               <-- name property = 'myapp'
+    package.json               <-- "name": "myapp"
     etc/                       <-- this directory must exist
         myapp.default.json     <-- this file must exist
         myapp.development.json <-- used if NODE_ENV = 'development'
@@ -60,18 +59,18 @@ var pkgconfig = require('pkgconfig'),
 // Use the config object...
 ```
 
-##Details
+##3. Details
 
 This section explores the `pkgconfig` utility in more detail.
 
-###The current working directory
+###3.1 The current working directory
 
 If you are running your application from a directory other than the application package directory,
 then the `etc` directory for the **deployment-specific configuration file** must be present in the
-current working directory. The **default configuration file** is still read from the application's
-package directory.
+current working directory. The **default configuration file** is still read from the application
+package `etc` directory.
 
-###Getting configuration values from other locations
+###3.2 Calling from other locations
 
 You can call `pkgconfig()` from anywhere in your application, not just from a top-level file such as `server.js`.
 For example, you could have a `lib` directory containing an `app.js` file.
@@ -88,7 +87,7 @@ myapp/
         myapp.production.json
 ```
 
-###Merging the deployment settings with the default settings
+###3.3 Merging configuration settings
 
 The deployment configuration settings are merged with the default configuration
 settings. For example, if `NODE_ENV` is set to 'production', then the
@@ -150,7 +149,7 @@ There are three important points regarding the merge process:
 2. **Extras are ignored.** If the `database` object in `myapp.production.js` had an additional property, such as `tablespace`, then this is *not* merged since there is no `tablespace` property in the original `myapp.js` file.
 3. **Scalars and arrays are replaced.** Any property that has a scalar (string, number, boolean) or an array value replaces the original value. Only objects are recursively traversed.
 
-###Using JavaScript instead of JSON
+###3.4 Using JavaScript instead of JSON
 
 You can use a JavaScript module instead of a JSON file.
 
@@ -166,7 +165,7 @@ module.exports = {
 };
 ```
 
-##Error Handling
+##4. Error Handling
 
 In your `server.js` file, get your configurations settings using either the
 simple approach discussed in the *Quick Start* section above or one of the
@@ -218,17 +217,17 @@ The following conditions are considered errors and an exception is thrown (or an
 7. The configuration file cannot be read using `require`.
 8. There is an error in the merge process (type mismatch errors).
 
-## Additional Information
+##5. Additional Information
 
-### Motivations
+###5.1 Motivations
 
 I created this utility because I wanted a configuration file manager that had the following properties:
 
-1. It must be easy to use. A simple require and a function call is all that is needed. Environment variables enhance this process, but are completely optional.
+1. It must be easy to use. A simple require and a function call is all that is needed. The `NODE_ENV` environment variable enhance this process, but is completely optional.
 2. It must use the package name as the configuration filename. Often, production configuration files are located in a directory other than the installation directory. Having them named by package simplifies their maintenance.
 3. The configuration directory location must be independent from the module calling `pkgconfig`. A trivial approach of calling `require('./config/' + package.name)` would only work from a module in the top-level directory and fail elsewhere.
 
-### Finding the Application Directory
+###5.2 Finding the application directory
 
 It is worth discussing how the application directory is found since this allows calling `pkgconfig` from any module your application's directory structure.
 
@@ -237,7 +236,7 @@ It is worth discussing how the application directory is found since this allows 
 3. If there is no `package.json` file in this directory, then successive parent directories are searched until the root of the filesystem is found.
 4. If no `package.json` file is found, an exception is thrown.
 
-## 4. License
+##6. License
 
 (The MIT License)
 
