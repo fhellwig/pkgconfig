@@ -230,12 +230,14 @@ Exceptions
 The `pkgconfig` utility follows the
 [fail-fast](http://en.wikipedia.org/wiki/Fail-fast) design principle. If a
 configuration file is not found, an exception is thrown. For example, if the
-`NODE_CONFIG_DIR` environment variable is set and no configuration file is
-found in that directory, then this is considered an error (versus trying the
-default `config` directory). Configuration files determine the initial state of
-your application and there should never be any ambiguity about that state.
+`NODE_ENV` environment variable is set to *production* and a
+`{pkgname}.production.(js|json)` file is not found, then this is considered an
+error (versus trying some alternate default configuration file). Configuration
+files determine the initial state of your application and there should never be
+any ambiguity about that state.
 
-The following conditions are considered errors and an exception is thrown (or an error object is passed to the callback function) in each case:
+The following conditions are considered errors and an exception is thrown (or
+an error object is passed to the callback function) in each case:
 
 1. The `package.json` file is not found.
 2. The `package.json` file cannot be read using `require`.
