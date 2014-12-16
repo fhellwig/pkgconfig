@@ -75,6 +75,22 @@ function loadConfig(pathname) {
     }
 }
 
+function getConfigFilePathnames() {
+    var pathnames = [],
+        pkg = pkgfinder(),
+        env = process.env.NODE_ENV,
+        pkgname = pkg.name,
+        envname = env ? pkgname + '.' + env : pkgname;
+    pathnames.push(path.resolve(path.resolve(pkg.directory, './etc'), pkgname));
+    if (!pkg.isCurrent || pkgname != envname) {
+        pathnames.push(path.resolve(path.resolve(process.cwd(), './etc'), envname));
+    }
+    return pathnames;
+}
+
+etcPathname
+envPathname
+
 function getConfigObject() {
     // Loads the master configuration file and merges it with the
     // deployment-specific configuration file if different.
