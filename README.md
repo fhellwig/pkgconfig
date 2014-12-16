@@ -1,11 +1,12 @@
-#pkgconfig
+pkgconfig
+=========
 
 A configuration file manager for node.js applications. It uses the package name
 from the application's `package.json` file and looks for `{pkgname}.json` or
-`{pkgname}.js` file in the `etc` application's directory (the same directory
-containing the `package.sjon` file).
+`{pkgname}.js` file in the application's `etc` directory.
 
-##Installation
+Installation
+------------
 
 Add the `pkgconfig` module as a dependency in your `package.json` file and then
 run `npm install`.
@@ -20,15 +21,16 @@ run `npm install`.
 $ npm install
 ```
 
-##Quick Start
+Quick Start
+-----------
 
 Step 1: Create an `etc` directory in your application.
 
 ```no-highlight
 myapp/
     server.js
-    package.json               	<-- "name": "myapp"
-    etc/                       	<-- this directory must exist
+    package.json                <-- "name": "myapp"
+    etc/                        <-- this directory must exist
 ```
 
 Step 2: Add a `.json` configuration file. This file must have the same
@@ -38,9 +40,9 @@ the `package.json` file.
 ```no-highlight
 myapp/
     server.js
-    package.json               	<-- "name": "myapp"
-    etc/                       	<-- this directory must exist
-        myapp.json		<-- this file must exist
+    package.json                <-- "name": "myapp"
+    etc/                        <-- this directory must exist
+        myapp.json              <-- this file must exist
 ```
 
 Step 3 (optional): Add a deployment-specific configuration file.
@@ -50,10 +52,10 @@ This file is merged with the manditory `myapp.json` file.
 ```no-highlight
 myapp/
     server.js
-    package.json               	<-- "name": "myapp"
-    etc/                       	<-- this directory must exist
-        myapp.json     		<-- this file must exist
-        myapp.production.json  	<-- used if NODE_ENV='production'
+    package.json                <-- "name": "myapp"
+    etc/                        <-- this directory must exist
+        myapp.json              <-- this file must exist
+        myapp.production.json   <-- used if NODE_ENV='production'
 ```
 
 Step 4: Call the `pkgconfig()` function from your `server.js` file.
@@ -64,7 +66,8 @@ var pkgconfig = require('pkgconfig'),
 // Use the config object...
 ```
 
-##The Merge Process
+The Merge Process
+-----------------
 
 In the previous example, the `myapp.production.json` file is merged
 with the `myapp.json` file. This section describes the merge process.
@@ -119,7 +122,8 @@ The benefit of this approach is that the base `myapp.json` file essentially
 provides a typed template of what is allowed in the merged file. This is much
 simpler than using JSON schema or some other type of validation.
 
-##Current Working Directory
+Current Working Directory
+-------------------------
 
 The behavior of `pkgconfig` is altered slightly if you run your application
 from a directory other than the application's directory. This is useful if you
@@ -142,7 +146,8 @@ Then `pkgconfig` will look for a
 `/home/yourname/myapp/etc/myapp.json` file. In either case, this file is
 *merged* with the `/opt/myapp/etc/myapp.json` file as previously described.
 
-##Nested Modules
+Nested Modules
+--------------
 
 You can call `pkgconfig()` from anywhere in your application, not just from a
 top-level file such as `server.js`. For example, you could have a `lib`
@@ -153,10 +158,10 @@ used.
 ```no-highlight
 myapp/
     server.js
-    package.json               	<-- "name": "myapp"
+    package.json                <-- "name": "myapp"
     lib/
-        app.js                 	<-- requires and calls pkgconfig
-    etc/                       	<-- this directory is still used
+        app.js                  <-- requires and calls pkgconfig
+    etc/                        <-- this directory is still used
         myapp.json
 ```
 
@@ -167,7 +172,8 @@ The application directory is found using the following algorithm:
 3. If there is no `package.json` file in this directory, then successive parent directories are searched until the root of the filesystem is found.
 4. If no `package.json` file is found, an exception is thrown.
 
-## Using JavaScript Modules
+Using JavaScript Modules
+------------------------
 
 In all of the previous examples, you can use a JavaScript module instead of a
 JSON file. Simply set the `module.exports` property to a JavaScript object:
@@ -184,7 +190,8 @@ module.exports = {
 };
 ```
 
-##4. Error Handling
+Error Handling
+--------------
 
 In your `server.js` file, get your configurations settings using either the
 simple approach discussed in the *Quick Start* section above or one of the
@@ -217,7 +224,8 @@ pkgconfig(function(err, config) {
 });
 ```
 
-##Exceptions
+Exceptions
+----------
 
 The `pkgconfig` utility follows the
 [fail-fast](http://en.wikipedia.org/wiki/Fail-fast) design principle. If a
@@ -238,7 +246,8 @@ The following conditions are considered errors and an exception is thrown (or an
 7. The configuration file cannot be read using `require`.
 8. There is an error in the merge process (type mismatch errors).
 
-##License
+License
+-------
 
 (The MIT License)
 
