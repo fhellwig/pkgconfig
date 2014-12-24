@@ -26,32 +26,19 @@ var fs = require('fs'),
     pkgfinder = require('pkgfinder');
 
 /**
- * This module exports the function to read the configuration object.
- * If a callback function is specified, then any errors are passed to
- * the callback function. Otherwise, an execption is thrown.
+ * Loads the default configuration file. If an environment is specified by the
+ * NODE_ENV environment variable, it is merged with the default settings.
  */
-module.exports = function(env) {
-    env = env || process.env.NODE_ENV;
-    var pkg = pkgfinder(),
-        dir = pkg.resolve('./config');
-    checkConfigDir(dir);
-    var config = loadConfigFile(path.resolve(dir, 'default'), true);
-
-    try {
-        var config = getConfigObject();
-        if (typeof callback === 'function') {
-            callback(null, config);
-            return;
-        } else {
-            return config;
-        }
-    } catch (err) {
-        if (typeof callback === 'function') {
-            callback(err, null);
-        } else {
-            throw err;
-        }
+function loadAndMerge(def) {
+    var def = def || 'default',
+        pkg = pkgfinder(),
+        dir = pkg.resolve('config'),
+        env = process.env.NODE_ENV,
+        cfg = loadConfigFile(path.resolve(dir, def));
+    if (env) {
+        merge(cfg, loadConfigFile(path.resolve(dir, env)));
     }
+    return cfg;
 };
 
 /**
@@ -68,60 +55,19 @@ function getConfigObject() {
 }
 
 /**
- * Returns an array of one or two pathnames. The first pathname is the default
- * configuration file located in the application etc directory. The second is
- * the configuration file specified by the NODE_ENV variable and is located in
- * the current directory. If the current directory is the application directory
- * and the NODE_ENV environment variable is not set, then only one pathname is
- * returned (the returned array will only have one element instead of two).
- */
-function getConfigPathnames() {
-    var pathnames = [],
-        pkg = pkgfinder(),
-        env = process.env.NODE_ENV,
-        pkgname = pkg.name,
-        dirname = path.resolve(pkg.directory, './config');
-    checkDirectory(dirname);
-    pathnames.push(path.resolve(dirname, pkgname));
-    if (pkg.isCurrent && !env) {
-        return pathnames;
-    }
-    dirname = path.resolve(process.cwd(), './config');
-    checkDirectory(dirname);
-    pathnames.push(path.resolve(dirname, pkgname + '.' + env));
-    return pathnames;
-}
-
-/**
- * Checks that the specified dir parameter is a directory.
- * Throws an exception if it does not exist or is not a directory.
- */
-function checkConfigDir(dir) {
-    if (fs.existsSync(dir)) {
-        var stats = fs.statSync(dir);
-        if (stats.isDirectory()) {
-            return;
-        }
-    }
-    throw new Error("The configuration directory '" + dir + "' does not exist.");
-}
-
-/**
  * Loads the configuration module specified by the pathname. It uses the
  * require function and therefore reads both JavaScript and JSON files.
  * An exception is thrown if the module is not found, cannot be read, or
  * is not an object. Returns the configuration as an object.
  */
-function loadConfigFile(pathname, required) {
+function loadConfigFile(pathname) {
     try {
         var config = require(pathname);
         checkObject(config);
         return config;
     } catch (err) {
         if (err.code === 'MODULE_NOT_FOUND') {
-            if (required) {
-                throw new Error("Cannot load the '" + pathname + ".(js|json)' configuration file.");
-            }
+            throw new Error("Cannot load the '" + pathname + ".(js|json)' configuration file.");
         } else {
             throw err;
         }
@@ -167,4 +113,11 @@ function checkObject(val) {
  */
 function getType(val) {
     return util.isArray(val) ? 'array' : typeof val;
+}
+
+module.exports = loadAndMerge;
+
+if (!module.parent) {
+    loadAndMerge();
+    loadAndMerge('config');
 }
