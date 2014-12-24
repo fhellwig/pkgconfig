@@ -1,22 +1,27 @@
 {
-    "name": "pkgconfig",
-    "version": "2.0.0",
-    "description": "A configuration file manager for node.js applications.",
-    "keywords": ["application","configuration"],
-    "licenses": [{
-        "type": "MIT",
-        "url": "http://www.opensource.org/licenses/MIT"
-    }],
-    "author": "Frank Hellwig <frank@hellwig.org>",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/fhellwig/pkgconfig.git"
-    },
-    "main": "./pkgconfig.js",
-    "dependencies": {
-        "pkgfinder": "1.0.x"
-    },
-    "engine": {
-        "node": ">=0.8"
+  "name": "pkgconfig",
+  "version": "2.0.0",
+  "description": "A configuration file manager for node.js applications.",
+  "keywords": [
+    "application",
+    "configuration"
+  ],
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://www.opensource.org/licenses/MIT"
     }
+  ],
+  "author": "Frank Hellwig <frank@hellwig.org>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fhellwig/pkgconfig.git"
+  },
+  "main": "./pkgconfig.js",
+  "dependencies": {
+    "pkgfinder": "^1.0.8"
+  },
+  "engine": {
+    "node": ">=0.8"
+  }
 }
