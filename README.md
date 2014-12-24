@@ -205,7 +205,7 @@ The following conditions are considered errors and an exception is thrown:
 1. The `package.json` file is not found.
 2. The `config` subdirectory is not found in the application directory.
 3. The `default.(js|json)` configuration file is not found in the `config` subdirectory.
-4. The `NODE_ENV` environment variable is set but the `{NODE_ENV}.(js|json)` configuration file is not found.
+4. The environment is specified by the `NODE_ENV` environment variable or the `pkgconfig()` parameter, but the `{environment}.(js|json)` configuration file is not found.
 5. There is an error in the merge process (type mismatch errors).
 
 License
