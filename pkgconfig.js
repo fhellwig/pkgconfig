@@ -30,7 +30,13 @@ var fs = require('fs'),
  * If a callback function is specified, then any errors are passed to
  * the callback function. Otherwise, an execption is thrown.
  */
-module.exports = function(callback) {
+module.exports = function(env) {
+    env = env || process.env.NODE_ENV;
+    var pkg = pkgfinder(),
+        dir = pkg.resolve('./config');
+    checkConfigDir(dir);
+    var config = loadConfigFile(path.resolve(dir, 'default'), true);
+
     try {
         var config = getConfigObject();
         if (typeof callback === 'function') {
@@ -74,30 +80,30 @@ function getConfigPathnames() {
         pkg = pkgfinder(),
         env = process.env.NODE_ENV,
         pkgname = pkg.name,
-        dirname = path.resolve(pkg.directory, './etc');
+        dirname = path.resolve(pkg.directory, './config');
     checkDirectory(dirname);
     pathnames.push(path.resolve(dirname, pkgname));
     if (pkg.isCurrent && !env) {
         return pathnames;
     }
-    dirname = path.resolve(process.cwd(), './etc');
+    dirname = path.resolve(process.cwd(), './config');
     checkDirectory(dirname);
     pathnames.push(path.resolve(dirname, pkgname + '.' + env));
     return pathnames;
 }
 
 /**
- * Checks that the dirname specifies a directory.
- * Throws an exception if it does not.
+ * Checks that the specified dir parameter is a directory.
+ * Throws an exception if it does not exist or is not a directory.
  */
-function checkDirectory(dirname) {
-    if (fs.existsSync(dirname)) {
-        var stats = fs.statSync(dirname);
+function checkConfigDir(dir) {
+    if (fs.existsSync(dir)) {
+        var stats = fs.statSync(dir);
         if (stats.isDirectory()) {
             return;
         }
     }
-    throw new Error("The configuration directory '" + dirname + "' does not exist.");
+    throw new Error("The configuration directory '" + dir + "' does not exist.");
 }
 
 /**
@@ -106,14 +112,16 @@ function checkDirectory(dirname) {
  * An exception is thrown if the module is not found, cannot be read, or
  * is not an object. Returns the configuration as an object.
  */
-function loadConfigFile(pathname) {
+function loadConfigFile(pathname, required) {
     try {
         var config = require(pathname);
         checkObject(config);
         return config;
     } catch (err) {
         if (err.code === 'MODULE_NOT_FOUND') {
-            throw new Error("Cannot find the '" + pathname + ".(js|json)' configuration file.");
+            if (required) {
+                throw new Error("Cannot load the '" + pathname + ".(js|json)' configuration file.");
+            }
         } else {
             throw err;
         }
