@@ -90,3 +90,4 @@ function merge(target, source) {
     });
 }
 
+module.exports = pkgconfig;
