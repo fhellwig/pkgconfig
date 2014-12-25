@@ -25,65 +25,59 @@ var fs = require('fs'),
     util = require('util'),
     pkgfinder = require('pkgfinder');
 
-/**
- * Loads the default configuration file. If an environment is specified by the
- * NODE_ENV environment variable, it is merged with the default settings.
- */
-function loadAndMerge(def) {
-    var def = def || 'default',
-        pkg = pkgfinder(),
+function pkgconfig(name) {
+    var pkg = pkgfinder(),
         dir = pkg.resolve('config'),
-        env = process.env.NODE_ENV,
-        cfg = loadConfigFile(path.resolve(dir, def));
+        cfg = (typeof name === 'string') ? name : pkg.name,
+        obj = loadobj(dir, cfg),
+        env = process.env.NODE_ENV;
     if (env) {
-        merge(cfg, loadConfigFile(path.resolve(dir, env)));
+        merge(obj, loadobj(path.resolve(dir, env), cfg));
     }
-    return cfg;
-};
-
-/**
- * Loads the configuration file, merging them if required.
- * Returns the configuration object.
- */
-function getConfigObject() {
-    var pathnames = getConfigPathnames();
-    var config = loadConfigFile(pathnames[0]);
-    if (pathnames.length > 1) {
-        merge(config, loadConfigFile(pathnames[1]));
-    }
-    return config;
+    return obj;
 }
 
-/**
- * Loads the configuration module specified by the pathname. It uses the
- * require function and therefore reads both JavaScript and JSON files.
- * An exception is thrown if the module is not found, cannot be read, or
- * is not an object. Returns the configuration as an object.
- */
-function loadConfigFile(pathname) {
+function loadobj(dir, cfg) {
     try {
-        var config = require(pathname);
-        checkObject(config);
-        return config;
+        var file = path.resolve(checkdir(dir), cfg);
+        return checkobj(require(file));
     } catch (err) {
         if (err.code === 'MODULE_NOT_FOUND') {
-            throw new Error("Cannot load the '" + pathname + ".(js|json)' configuration file.");
+            throw new Error('No such file: ' + file + '.(js|json)');
         } else {
             throw err;
         }
     }
 }
 
-/**
- * Merges the target with values from the source.
- * Throws an exception on type mismatch.
- */
+function checkdir(dir) {
+    if (fs.existsSync(dir)) {
+        var stats = fs.statSync(dir);
+        if (stats.isDirectory()) {
+            return dir;
+        }
+    }
+    throw new Error('No such directory: ' + dir);
+}
+
+function checkobj(val) {
+    var type = gettype(val);
+    if (type === 'object') {
+        return val;
+    }
+    throw new Error('Not an object: ' + type);
+}
+
+function gettype(val) {
+    return util.isArray(val) ? 'array' : typeof val;
+}
+
 function merge(target, source) {
     var props = Object.getOwnPropertyNames(target);
     props.forEach(function(name) {
-        var s = getType(source[name]);
+        var s = gettype(source[name]);
         if (s !== 'undefined') {
-            var t = getType(target[name]);
+            var t = gettype(target[name]);
             if (t !== s) {
                 throw new Error("Type mismatch between '" + t + "' and '" + s + "' for '" + name + "'.");
             }
@@ -96,28 +90,3 @@ function merge(target, source) {
     });
 }
 
-/**
- * Checks that the specified value is an object and throws an exception
- * if it is not an object. Arrays are not considered objects.
- */
-function checkObject(val) {
-    var type = getType(val);
-    if (type !== 'object') {
-        throw new Error("Expected an object instead of '" + val + "' (" + type + ").");
-    }
-}
-
-/**
- * Returns the type of the specified value but returns 'array'
- * instead of 'object' if the specified value is an array.
- */
-function getType(val) {
-    return util.isArray(val) ? 'array' : typeof val;
-}
-
-module.exports = loadAndMerge;
-
-if (!module.parent) {
-    loadAndMerge();
-    loadAndMerge('config');
-}
