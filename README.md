@@ -100,9 +100,9 @@ This section discusses how the `NODE_ENV` environment variable is used.
 
 ###3.1 The environment directory###
 
-If the `NODE_ENV` environment variable is set, the a subdirectory in the config
-directory having the same name as the `NODE_ENV` setting is expected. For
-example, if `NODE_ENV` is set to *production*, then the `config/production`
+If the `NODE_ENV` environment variable is set, the a subdirectory in the
+`config` directory having the same name as the `NODE_ENV` setting is expected.
+For example, if `NODE_ENV` is set to *production*, then the `config/production`
 directory must exist and the configuration file in that directory is merged
 with the base configuration file in the `config` directory.
 
@@ -179,8 +179,8 @@ being returned from `pkgconfig()`:
 
 There are three important points regarding the merge process:
 
-1. **Like matches like.** Since the `password` in `myapp.json` is a string, an exception would be thrown if the `password` in `myapp.production.json` were a number. Similarly, if the port were specified as a string in the `myapp.production.json` file instead of a number, then an exception would also be thrown.
-2. **Extras are ignored.** If the `database` object in `myapp.production.json` had an additional property, such as `tablespace`, then this is *not* merged since there is no `tablespace` property in the original `myapp.json` file.
+1. **Like matches like.** Since the `password` in base configuration file is a string, an exception would be thrown if the `password` in production configuration file were a number. Similarly, if the port were specified as a string in the production configuration file instead of a number, then an exception would also be thrown.
+2. **Extras are ignored.** If the `database` object in the production configuration file had an additional property, such as `tablespace`, then this is *not* merged since there is no `tablespace` property in the base configuration file.
 3. **Scalars and arrays are replaced.** Any property that has a scalar (string, number, boolean) or an array value replaces the original value. Only objects are recursively traversed.
 
 The benefit of this approach is that the base `myapp.json` file essentially
