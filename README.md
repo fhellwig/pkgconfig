@@ -126,7 +126,7 @@ myapp/
     config/
         database.json           <-- read first and provides default values
         production/
-            database.json       <-- merged with the default myapp.json file
+            database.json       <-- merged with the default database.json file
 ```
 
 ```javascript
