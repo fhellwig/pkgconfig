@@ -1,41 +1,40 @@
-#pkgconfig#
+#pkgconfig
 
 A configuration file manager for node.js applications. It loads and merges
 configuration files in the application `config` directory. The application
 directory is the one containing the `packge.json` file.
 
-##1. Quick Start##
+##Quick Start
 
-Given the following application structure...
+Install the `pkgconfig` module.
+
+```no-highlight
+npm install pkgconfig --save
+```
+
+Add a `config` directory to your application and create a JSON file having the
+same name as the `name` property in your `package.json` file.
 
 ```no-highlight
 myapp/
-    package.json
+    package.json                <-- "name": "myapp"
     server.js
     config/
         myapp.json
 ```
 
-...and a `package.json` file with the `name` property set to `myapp`...
-
-```json
-{
-    "name": "myapp"
-}
-```
-
-...then calling `pkgconfig()` will load the `myapp.json` file from the `config` directory.
+Call `pkgconfig()` to load the `myapp.json` file from the `config` directory.
 
 ```javascript
 var pkgconfig = require('pkgconfig'),
     config = pkgconfig(); 
 ```
 
-##2. The Config File##
+##The Config File
 
 This section discusses how the config file is found and loaded.
 
-###2.1 The config filename###
+###The config filename
 
 The name of the config file is taken from the `name` property in the `package.json` file.
 You can change this by providing a string argument to the `pkgconfig()` function.
@@ -53,7 +52,7 @@ var pkgconfig = require('pkgconfig'),
     config = pkgconfig('database'); 
 ```
 
-###2.2 The config directory###
+###The config directory
 
 You can call `pkgconfig()` from anywhere in your application, not just from a
 top-level file such as `server.js`. For example, you could have a `lib`
@@ -77,7 +76,7 @@ The application directory is found using the following algorithm:
 3. If there is no `package.json` file in this directory, then successive parent directories are searched until the root of the filesystem is found.
 4. If no `package.json` file is found, an exception is thrown.
 
-###2.3 Using JavaScript modules###
+###Using JavaScript modules
 
 You can use a JavaScript module instead of a JSON file.
 Simply set the `module.exports` property to a JavaScript object.
@@ -94,11 +93,11 @@ module.exports = {
 };
 ```
 
-##3. Node Environment##
+##Node Environment
 
 This section discusses how the `NODE_ENV` environment variable is used.
 
-###3.1 The environment directory###
+###The environment directory
 
 If the `NODE_ENV` environment variable is set, the a subdirectory in the
 `config` directory having the same name as the `NODE_ENV` setting is expected.
@@ -136,7 +135,7 @@ var pkgconfig = require('pkgconfig'),
 
 Multiple configuration files can be provided, each read with a call to `pkgconfig()`.
 
-###3.2 The merge process
+###The merge process
 
 Consider the following `config/myapp.json` file:
 
@@ -183,7 +182,7 @@ There are three important points regarding the merge process:
 2. **Extras are ignored.** If the `database` object in the production configuration file had an additional property, such as `tablespace`, then this is *not* merged since there is no `tablespace` property in the base configuration file.
 3. **Scalars and arrays are replaced.** Any property that has a scalar (string, number, boolean) or an array value replaces the original value. Only objects are recursively traversed.
 
-The benefit of this approach is that the base `myapp.json` file essentially
+The benefit of this approach is that the base configuration file essentially
 provides a typed template of what is allowed in the merged file. This is much
 simpler than using JSON schema or some other type of validation.
 
