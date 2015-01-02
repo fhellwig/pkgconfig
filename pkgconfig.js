@@ -23,14 +23,18 @@
 var fs = require('fs'),
     path = require('path'),
     util = require('util'),
+    strformat = require('strformat'),
     pkgfinder = require('pkgfinder');
 
 function pkgconfig(name) {
     var pkg = pkgfinder(),
-        dir = pkg.resolve('config'),
+        dir = checkdir(pkg.resolve('config')),
         cfg = (typeof name === 'string') ? name : pkg.name,
         obj = loadobj(dir, cfg),
         env = process.env.NODE_ENV;
+    if (obj === null) {
+        throw new Error(strformat("Could not find the '{0}' configuration file in the '{1}' directory.", cfg, dir));
+    }
     if (env) {
         merge(obj, loadobj(path.resolve(dir, env), cfg));
     }
@@ -39,11 +43,10 @@ function pkgconfig(name) {
 
 function loadobj(dir, cfg) {
     try {
-        var file = path.resolve(checkdir(dir), cfg);
-        return checkobj(require(file));
+        return checkobj(require(path.resolve(dir, cfg)));
     } catch (err) {
         if (err.code === 'MODULE_NOT_FOUND') {
-            throw new Error('No such file: ' + file + '.(js|json)');
+            return null;
         } else {
             throw err;
         }
@@ -57,7 +60,7 @@ function checkdir(dir) {
             return dir;
         }
     }
-    throw new Error('No such directory: ' + dir);
+    throw new Error(strformat("The configuration directory '{0}' does not exist.", dir));
 }
 
 function checkobj(val) {
@@ -65,7 +68,7 @@ function checkobj(val) {
     if (type === 'object') {
         return val;
     }
-    throw new Error('Not an object: ' + type);
+    throw new Error(strformat("Expected an object but got {0} instead.", type));
 }
 
 function gettype(val) {
@@ -73,8 +76,11 @@ function gettype(val) {
 }
 
 function merge(target, source) {
+    if (source === null) {
+        return;
+    }
     var props = Object.getOwnPropertyNames(target);
-    props.forEach(function(name) {
+    props.forEach(function (name) {
         var s = gettype(source[name]);
         if (s !== 'undefined') {
             var t = gettype(target[name]);

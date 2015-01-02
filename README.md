@@ -99,11 +99,13 @@ This section discusses how the `NODE_ENV` environment variable is used.
 
 ###The environment directory
 
-If the `NODE_ENV` environment variable is set, the a subdirectory in the
-`config` directory having the same name as the `NODE_ENV` setting is expected.
+If the `NODE_ENV` environment variable is set, then a subdirectory in the
+`config` directory having the same name as the `NODE_ENV` setting is used
+if it exists.
+
 For example, if `NODE_ENV` is set to *production*, then the `config/production`
-directory must exist and the configuration file in that directory is merged
-with the base configuration file in the `config` directory.
+directory is used (if it exists) and the configuration file in that directory
+(if found) is merged with the base configuration file in the `config` directory.
 
 ```no-highlight
 myapp/
@@ -116,7 +118,9 @@ myapp/
 ```
 
 If `pkgconfig()` is called with a string argument, then the same process
-applies but the specified argument is used.
+applies but the specified argument is used. As before, the base configuration
+file must exist. A configuration file with that name in the `NODE_ENV`
+directory is optional but is merged if it exists.
 
 ```no-highlight
 myapp/
@@ -189,22 +193,12 @@ simpler than using JSON schema or some other type of validation.
 Exceptions
 ----------
 
-The `pkgconfig` utility follows the
-[fail-fast](http://en.wikipedia.org/wiki/Fail-fast) design principle. If a
-configuration file is not found, an exception is thrown. For example, if the
-`NODE_ENV` environment variable is set to *production* and the `production`
-subdirectory does not exist, then this is considered an error (versus ignoring
-it and only using the base configuration file). Configuration files determine
-the initial state of your application and there should never be any ambiguity
-about that state.
-
 The following conditions are considered errors and an exception is thrown:
 
 1. The `package.json` file is not found, cannot be read, or does not have a `name` property.
 2. The `config` directory is not found in the application directory containing the `package.json` file.
-3. The `{name}.(js|json)` configuration file is not found in the `config` directory (or the environment subdirectory) where `{name}` is either the `name` property in the `package.json` file or the string argument provided to the `pkgconfig()` function.
-4. The `NODE_ENV` environment variable is set but no such subdirectory exists in the `config` directory.
-5. There is an error in the merge process (type mismatch errors).
+3. The `{name}.(js|json)` configuration file is not found in the `config` directory where `{name}` is either the `name` property in the `package.json` file or the string argument provided to the `pkgconfig()` function.
+4. There is an error in the merge process (type mismatch errors).
 
 License
 -------
