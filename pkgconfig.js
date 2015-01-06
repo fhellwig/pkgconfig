@@ -28,22 +28,36 @@ var fs = require('fs'),
 
 function pkgconfig(name) {
     var pkg = pkgfinder(),
-        dir = checkdir(pkg.resolve('config')),
-        cfg = (typeof name === 'string') ? name : pkg.name,
-        obj = loadobj(dir, cfg),
+        name = (typeof name === 'string') ? name : pkg.name,
+        conf = loadrequired(path.resolve(pkg.directory, 'conf', name)),
+        cwd = process.cwd();
         env = process.env.NODE_ENV;
-    if (obj === null) {
-        throw new Error(strformat("Could not find the '{0}' configuration file in the '{1}' directory.", cfg, dir));
-    }
     if (env) {
-        merge(obj, loadobj(path.resolve(dir, env), cfg));
+        merge(conf, loadoptional(path.resolve(process.cwd(), 'conf', env, name)));
+    } else if (cwd !== pkg.directory) {
+        merge(conf, loadoptional(path.resolve(process.cwd(), 'conf', name)));
+    } else {
+        console.log('ignoring');
     }
-    return obj;
+    return conf;
 }
 
-function loadobj(dir, cfg) {
+function loadrequired(file) {
     try {
-        return checkobj(require(path.resolve(dir, cfg)));
+        return checkobj(require(file));
+    } catch (err) {
+        if (err.code === 'MODULE_NOT_FOUND') {
+            throw new Error(strformat("Cannot find configuration file '{0}.(js|json)'", file));
+        } else {
+            throw err;
+        }
+    }
+}
+
+function loadoptional(file) {
+    try {
+        console.log('loadoptional ' + file);
+        return checkobj(require(file));
     } catch (err) {
         if (err.code === 'MODULE_NOT_FOUND') {
             return null;
@@ -53,22 +67,12 @@ function loadobj(dir, cfg) {
     }
 }
 
-function checkdir(dir) {
-    if (fs.existsSync(dir)) {
-        var stats = fs.statSync(dir);
-        if (stats.isDirectory()) {
-            return dir;
-        }
-    }
-    throw new Error(strformat("The configuration directory '{0}' does not exist.", dir));
-}
-
 function checkobj(val) {
     var type = gettype(val);
     if (type === 'object') {
         return val;
     }
-    throw new Error(strformat("Expected an object but got {0} instead.", type));
+    throw new Error(strformat("Expected an object but got {0} instead", type));
 }
 
 function gettype(val) {
@@ -76,24 +80,24 @@ function gettype(val) {
 }
 
 function merge(target, source) {
-    if (source === null) {
-        return;
-    }
-    var props = Object.getOwnPropertyNames(target);
-    props.forEach(function (name) {
-        var s = gettype(source[name]);
-        if (s !== 'undefined') {
-            var t = gettype(target[name]);
-            if (t !== s) {
-                throw new Error("Type mismatch between '" + t + "' and '" + s + "' for '" + name + "'.");
-            }
-            if (t === 'object') {
-                merge(target[name], source[name]);
-            } else {
-                target[name] = source[name];
-            }
+        if (source === null) {
+            return;
         }
-    });
-}
+        var props = Object.getOwnPropertyNames(target);
+        props.forEach(function (name) {
+                var s = gettype(source[name]);
+                if (s !== 'undefined') {
+                    var t = gettype(target[name]);
+                    if (t !== s) {
+                        throw new Error(strformat("Type mismatch between '{0}' and '{1}' for '{2}'", t, s, name));
+                        }
+                        if (t === 'object') {
+                            merge(target[name], source[name]);
+                        } else {
+                            target[name] = source[name];
+                        }
+                    }
+                });
+        }
 
-module.exports = pkgconfig;
+        module.exports = pkgconfig;

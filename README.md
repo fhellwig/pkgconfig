@@ -1,8 +1,8 @@
 #pkgconfig
 
-A configuration file manager for node.js applications. It loads and merges
-configuration files in the application `config` directory. The application
-directory is the one containing the `packge.json` file.
+A configuration file manager for node.js applications. It loads configuration
+files in the application's `conf` subdirectory and merges them with
+configuration files in the current working directory's `conf` subdirectory.
 
 ##Quick Start
 
@@ -12,74 +12,36 @@ Install the `pkgconfig` module.
 npm install pkgconfig --save
 ```
 
-Add a `config` directory to your application and create a JSON file having the
+Add a `conf` directory to your application and create a JSON file having the
 same name as the `name` property in your `package.json` file.
 
 ```no-highlight
 myapp/
     package.json                <-- "name": "myapp"
     server.js
-    config/
+    conf/
         myapp.json
 ```
 
-Call `pkgconfig()` to load the `myapp.json` file from the `config` directory.
+Call `pkgconfig()` to load the `myapp.json` file from the `conf` directory.
 
 ```javascript
 var pkgconfig = require('pkgconfig'),
-    config = pkgconfig(); 
+    appConf = pkgconfig(); 
 ```
 
-##The Config File
+##The Default Configuration File
 
-This section discusses how the config file is found and loaded.
+The default configuration file is located using the following pattern:
 
-###The config filename
+    {pkgdir}/conf/{name}.(js|json)
 
-The name of the config file is taken from the `name` property in the `package.json` file.
-You can change this by providing a string argument to the `pkgconfig()` function.
+The `{pkgdir}` is the directory containing the application's `package.json`
+file. The `{name}` is either the `name` property from the `package.json` file
+or the optional `name` argument to the `pkgfinder()` function.
 
-```no-highlight
-myapp/
-    package.json
-    server.js
-    config/
-        database.json
-```
-
-```javascript
-var pkgconfig = require('pkgconfig'),
-    config = pkgconfig('database'); 
-```
-
-###The config directory
-
-You can call `pkgconfig()` from anywhere in your application, not just from a
-top-level file such as `server.js`. For example, you could have a `lib`
-directory containing an `app.js` file. The `config` directory in the top-level
-directory (the one containing the `package.json` file) is still found and used.
-
-```no-highlight
-myapp/
-    server.js
-    package.json                <-- "name": "myapp"
-    lib/
-        app.js                  <-- calls pkgconfig()
-    config/
-        myapp.json              <-- this file is still used
-```
-
-The application directory is found using the following algorithm:
-
-1. The directory of the main entry point of your application is determined by calling `path.dirname(require.main.filename)`.
-2. The `package.json` file is then loaded from this directory.
-3. If there is no `package.json` file in this directory, then successive parent directories are searched until the root of the filesystem is found.
-4. If no `package.json` file is found, an exception is thrown.
-
-###Using JavaScript modules
-
-You can use a JavaScript module instead of a JSON file.
-Simply set the `module.exports` property to a JavaScript object.
+The configuration file can be a JavaScript or a JSON file. For a JavaScript
+files, simply set the `module.exports` property to a JavaScript object.
 
 ```javascript
 module.exports = {
@@ -93,55 +55,37 @@ module.exports = {
 };
 ```
 
-##Node Environment
+The default configuration file must exist. It is an error if it is not found,
+cannot be read, or is not a valid JavaScript or JSON object.
 
-This section discusses how the `NODE_ENV` environment variable is used.
+##Overriding Configuration Values
 
-###The environment directory
-
-If the `NODE_ENV` environment variable is set, then a subdirectory in the
-`config` directory having the same name as the `NODE_ENV` setting is used
-if it exists.
-
-For example, if `NODE_ENV` is set to *production*, then the `config/production`
-directory is used (if it exists) and the configuration file in that directory
-(if found) is merged with the base configuration file in the `config` directory.
+If the current working directory is not the application's directory, then the
+configuration file in the `conf` subdirectory of the current working directory
+is read and merged with the default configuration file. For example:
 
 ```no-highlight
-myapp/
+/opt/myapp/                     <-- installed application location
     package.json
     server.js
-    config/
-        myapp.json              <-- read first and provides default values
-        production/
-            myapp.json          <-- merged with the default myapp.json file
+    conf/
+        myapp.json              <-- default configuration file
 ```
-
-If `pkgconfig()` is called with a string argument, then the same process
-applies but the specified argument is used. As before, the base configuration
-file must exist. A configuration file with that name in the `NODE_ENV`
-directory is optional but is merged if it exists.
 
 ```no-highlight
-myapp/
-    package.json
-    server.js
-    config/
-        database.json           <-- read first and provides default values
-        production/
-            database.json       <-- merged with the default database.json file
+/home/myapp/                    <-- current working directory
+    conf/
+        myapp.json              <-- merged with the default file
 ```
 
-```javascript
-var pkgconfig = require('pkgconfig'),
-    config = pkgconfig('database'); 
-```
-
-Multiple configuration files can be provided, each read with a call to `pkgconfig()`.
+The overriding configuration file need not exist. If the `/home/myapp/conf`
+directory does not exist or no configuration file is found, then it is not an
+error and the default configuration values are used as-is.
 
 ###The merge process
 
-Consider the following `config/myapp.json` file:
+Assume that the `/opt/myapp/conf/myapp.json` configuration file contains the
+following values:
 
 ```json
 {
@@ -155,7 +99,8 @@ Consider the following `config/myapp.json` file:
 }
 ```
 
-Next, consider the following `config/production/myapp.json` file (`NODE_ENV=production`):
+Next, assume that the `/home/myapp/conf/myapp.json` configuration file
+overrides the `database.password` value:
 
 ```json
 {
@@ -190,14 +135,56 @@ The benefit of this approach is that the base configuration file essentially
 provides a typed template of what is allowed in the merged file. This is much
 simpler than using JSON schema or some other type of validation.
 
+##Node Environment
+
+This section discusses how the `NODE_ENV` environment variable is used.
+
+###The environment directory
+
+If the `NODE_ENV` environment variable is set, then a subdirectory in the `conf` directory of the current working directory having the same name as the `NODE_ENV` setting is used if it exists.
+
+For example, if `NODE_ENV` is set to *production*, then the following situation applies:
+
+```no-highlight
+/opt/myapp/                     <-- installed application location
+    package.json
+    server.js
+    conf/
+        myapp.json              <-- default configuration file
+```
+
+```no-highlight
+/home/myapp/                    <-- current working directory
+    conf/
+        myapp.json              <-- ignored because NODE_ENV is set
+        production/
+            myapp.json          <-- merged with the default file
+```
+
+This also applies if the current working directory is the application directory:
+
+```no-highlight
+/opt/myapp/                     <-- installed application location
+    package.json
+    server.js
+    conf/
+        myapp.json              <-- default configuration file
+        production/
+            myapp.json          <-- merged with the default file
+```
+
+The environment configuration file need not exist. If the `production`
+directory does not exist or no configuration file is found, then it is not an
+error and the default configuration values are used as-is.
+
 Exceptions
 ----------
 
 The following conditions are considered errors and an exception is thrown:
 
 1. The `package.json` file is not found, cannot be read, or does not have a `name` property.
-2. The `config` directory is not found in the application directory containing the `package.json` file.
-3. The `{name}.(js|json)` configuration file is not found in the `config` directory where `{name}` is either the `name` property in the `package.json` file or the string argument provided to the `pkgconfig()` function.
+2. The `conf` directory is not found in the application directory containing the `package.json` file.
+3. The `{name}.(js|json)` configuration file is not found in the `conf` directory where `{name}` is either the `name` property in the `package.json` file or the string argument provided to the `pkgconfig()` function.
 4. There is an error in the merge process (type mismatch errors).
 
 License
