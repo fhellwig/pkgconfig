@@ -31,7 +31,7 @@ function pkgconfig(name) {
         name = (typeof name === 'string') ? name : pkg.name,
         conf = loadrequired(path.resolve(pkg.directory, 'conf', name)),
         cwd = process.cwd();
-        env = process.env.NODE_ENV;
+    env = process.env.NODE_ENV;
     if (env) {
         merge(conf, loadoptional(path.resolve(process.cwd(), 'conf', env, name)));
     } else if (cwd !== pkg.directory) {
@@ -80,24 +80,24 @@ function gettype(val) {
 }
 
 function merge(target, source) {
-        if (source === null) {
-            return;
+    if (source === null) {
+        return;
+    }
+    var props = Object.getOwnPropertyNames(target);
+    props.forEach(function (name) {
+        var s = gettype(source[name]);
+        if (s !== 'undefined') {
+            var t = gettype(target[name]);
+            if (t !== s) {
+                throw new Error(strformat("Type mismatch between '{0}' and '{1}' for '{2}'", t, s, name));
+            }
+            if (t === 'object') {
+                merge(target[name], source[name]);
+            } else {
+                target[name] = source[name];
+            }
         }
-        var props = Object.getOwnPropertyNames(target);
-        props.forEach(function (name) {
-                var s = gettype(source[name]);
-                if (s !== 'undefined') {
-                    var t = gettype(target[name]);
-                    if (t !== s) {
-                        throw new Error(strformat("Type mismatch between '{0}' and '{1}' for '{2}'", t, s, name));
-                        }
-                        if (t === 'object') {
-                            merge(target[name], source[name]);
-                        } else {
-                            target[name] = source[name];
-                        }
-                    }
-                });
-        }
+    });
+}
 
-        module.exports = pkgconfig;
+module.exports = pkgconfig;
