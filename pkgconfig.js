@@ -36,8 +36,6 @@ function pkgconfig(name) {
         merge(conf, loadoptional(path.resolve(process.cwd(), 'conf', env, name)));
     } else if (cwd !== pkg.directory) {
         merge(conf, loadoptional(path.resolve(process.cwd(), 'conf', name)));
-    } else {
-        console.log('ignoring');
     }
     return conf;
 }
@@ -56,7 +54,6 @@ function loadrequired(file) {
 
 function loadoptional(file) {
     try {
-        console.log('loadoptional ' + file);
         return checkobj(require(file));
     } catch (err) {
         if (err.code === 'MODULE_NOT_FOUND') {
