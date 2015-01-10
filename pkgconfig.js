@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Frank Hellwig
+ * Copyright (c) 2015 Frank Hellwig
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -29,30 +29,30 @@ var fs = require('fs'),
 function pkgconfig(name) {
     var pkg = pkgfinder(),
         name = (typeof name === 'string') ? name : pkg.name,
-        conf = loadrequired(path.resolve(pkg.directory, 'conf', name)),
-        cwd = process.cwd();
-    env = process.env.NODE_ENV;
+        dir = pkg.resolve('etc'),
+        config = loadrequired(dir, name),
+        env = process.env.NODE_ENV;
     if (env) {
-        merge(conf, loadoptional(path.resolve(process.cwd(), 'conf', env, name)));
-    } else if (cwd !== pkg.directory) {
-        merge(conf, loadoptional(path.resolve(process.cwd(), 'conf', name)));
+        merge(config, loadoptional(path.resolve(dir, env), name));
     }
-    return conf;
+    return config;
 }
 
-function loadrequired(file) {
+function loadrequired(dir, name) {
+    var file = path.resolve(checkdir(dir), name);
     try {
         return checkobj(require(file));
     } catch (err) {
         if (err.code === 'MODULE_NOT_FOUND') {
-            throw new Error(strformat("Cannot find configuration file '{0}.(js|json)'", file));
+            throw new Error(strformat("Configuration file not found: '{0}.(js|json)'", file));
         } else {
             throw err;
         }
     }
 }
 
-function loadoptional(file) {
+function loadoptional(dir, name) {
+    var file = path.resolve(dir, name);
     try {
         return checkobj(require(file));
     } catch (err) {
@@ -62,6 +62,16 @@ function loadoptional(file) {
             throw err;
         }
     }
+}
+
+function checkdir(dir) {
+    if (fs.existsSync(dir)) {
+        if (fs.statSync(dir).isDirectory()) {
+            return dir;
+        }
+        throw new Error(strformat("Not a directory: '{0}'", dir));
+    }
+    throw new Error(strformat("Configuration directory not found: '{0}'", dir));
 }
 
 function checkobj(val) {
