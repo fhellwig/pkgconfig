@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Frank Hellwig
+ * Copyright (c) 2017 Frank Hellwig
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -20,91 +20,99 @@
  * IN THE SOFTWARE.
  */
 
-var fs = require('fs'),
-    path = require('path'),
-    util = require('util'),
-    strformat = require('strformat'),
-    pkgfinder = require('pkgfinder');
+const fs = require('fs')
+const path = require('path')
+const util = require('util')
+const pkgfinder = require('pkgfinder')
 
-function pkgconfig(name) {
-    var pkg = pkgfinder(),
-        name = (typeof name === 'string') ? name : pkg.name,
-        dir = pkg.resolve('etc'),
-        config = loadrequired(dir, name),
-        env = process.env.NODE_ENV;
+function pkgconfig() {
+    const pkg = pkgfinder()
+    const dir = configdir()
+    const env = process.env.NODE_ENV
     if (env) {
-        merge(config, loadoptional(path.resolve(dir, env), name));
+        const e = loadrequired(dir, env)
+        const d = loadoptional(dir, 'default')
+        if (d === null) {
+            return e
+        } else {
+            return Object.assign(d, e)
+        }
+    } else {
+        return loadrequired(dir, 'default')
     }
-    return config;
+}
+
+function configdir() {
+    const pkg = pkgfinder()
+    const dir = pkg.resolve(process.env.NODE_CONFIG_DIR || 'config')
+    if (fs.existsSync(dir)) {
+        if (fs.statSync(dir).isDirectory()) {
+            return dir
+        }
+        throw new Error(`Not a directory: '${dir}'`)
+    }
+    throw new Error(`Configuration directory not found: '${dir}'`)
 }
 
 function loadrequired(dir, name) {
-    var file = path.resolve(checkdir(dir), name);
+    var file = path.resolve(dir, name)
     try {
-        return checkobj(require(file));
+        return checkobj(require(file))
     } catch (err) {
         if (err.code === 'MODULE_NOT_FOUND') {
-            throw new Error(strformat("Configuration file not found: '{0}.(js|json)'", file));
+            throw new Error(`Configuration file not found: '${file}.(js|json)'`)
         } else {
-            throw err;
+            throw err
         }
     }
 }
 
 function loadoptional(dir, name) {
-    var file = path.resolve(dir, name);
+    var file = path.resolve(dir, name)
     try {
-        return checkobj(require(file));
+        return checkobj(require(file))
     } catch (err) {
         if (err.code === 'MODULE_NOT_FOUND') {
-            return null;
+            return null
         } else {
-            throw err;
+            throw err
         }
     }
-}
-
-function checkdir(dir) {
-    if (fs.existsSync(dir)) {
-        if (fs.statSync(dir).isDirectory()) {
-            return dir;
-        }
-        throw new Error(strformat("Not a directory: '{0}'", dir));
-    }
-    throw new Error(strformat("Configuration directory not found: '{0}'", dir));
 }
 
 function checkobj(val) {
-    var type = gettype(val);
+    var type = gettype(val)
     if (type === 'object') {
-        return val;
+        return val
     }
-    throw new Error(strformat("Expected an object but got {0} instead", type));
+    throw new Error(`Expected an object but got ${type} instead`)
 }
 
 function gettype(val) {
-    return util.isArray(val) ? 'array' : typeof val;
+    return util.isArray(val) ? 'array' : typeof val
 }
 
+// Merges the source with the target. The target is modified and returned.
 function merge(target, source) {
     if (source === null) {
-        return;
+        return target
     }
-    var props = Object.getOwnPropertyNames(target);
+    var props = Object.getOwnPropertyNames(target)
     props.forEach(function (name) {
-        var s = gettype(source[name]);
+        var s = gettype(source[name])
         if (s !== 'undefined') {
-            var t = gettype(target[name]);
+            var t = gettype(target[name])
             if (t !== s) {
-                throw new Error(strformat("Type mismatch between '{0}' and '{1}' for '{2}'", t, s, name));
+                throw new Error(`Type mismatch between '${t}' and '${s}' for '${name}'`)
             }
             if (t === 'object') {
-                merge(target[name], source[name]);
+                merge(target[name], source[name])
             } else {
-                target[name] = source[name];
+                target[name] = source[name]
             }
         }
-    });
+    })
+    return target
 }
 
-module.exports = pkgconfig;
+module.exports = pkgconfig
