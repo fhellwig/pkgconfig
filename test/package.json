@@ -1,0 +1,6 @@
+{
+  "name": "pkgconfig-test",
+  "version": "1.0.0",
+  "description": "Tests the pkgconfig module.",
+  "main": "pkgconfig-test.js"
+}

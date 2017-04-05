@@ -1,11 +1,18 @@
 pkgconfig
 =========
 
+Version 3.2.0
+
 A configuration file manager for node.js applications. It loads configuration
-files in the application's `config` directory. Initially, a `default.json` file
-is loaded and merged with an optional configuration file specified by the the
-`NODE_ENV` environment variable. The `config` directory can be overridden by the
-`NODE_CONFIG_DIR` environment variable.
+files in the application's `config` directory. Initially, a `default.json` or
+`default.js` file is loaded and merged with an optional configuration file
+specified by the the `NODE_ENV` environment variable.
+
+The `default` configuration file can be overridden by specifying an argument
+to the `pkgconfig(<file>)` function.
+
+The `config` directory can be overridden by setting the `NODE_CONFIG_DIR`
+environment variable.
 
 Quick Start
 -----------
@@ -24,9 +31,12 @@ myapp/
     server.js
     config/
         default.json
+        testing.json
 ```
 
 Call `pkgconfig()` to load the `default.json` file from the `config` directory.
+
+Call `pkgconfig('testing')` to load the `testing.json` file from the `config` directory.
 
 ```javascript
 const pkgconfig = require('pkgconfig')
@@ -65,7 +75,7 @@ environment variable.
 
 ```no-highlight
 if NODE_ENV is set then
-    read the default.json configuration file (optional)
+    read the default configuration file (optional)
     read the NODE_ENV configuration file (required)
     if the NODE_ENV configuration file cannot be read then
         throw an exception
@@ -73,17 +83,19 @@ if NODE_ENV is set then
     if the default configuration file does not exist then
         return the NODE_ENV configuration values
     else
-        merge the default and NODE_ENV configuration using Object.assign
+        merge the default and NODE_ENV configuration using object-merge*
         return the merged results
     end if
 else
-    read the NODE_ENV configuration file
-    if the NODE_ENV configuration file cannot be read then
+    read the default configuration file (required)
+    if the default configuration file does not exist then
         throw an exception
     end if
-    return the NODE_ENV configuration values
+    return the default configuration values
 end if
 ```
+
+* The `object-merge` refers to the [object-merge](https://www.npmjs.com/package/object-merge) package.
 
 For example, if `NODE_ENV` is set to *production*, then the following situation applies:
 
@@ -103,9 +115,22 @@ The following conditions are considered errors and an exception is thrown:
 
 1. The application's `package.json` file is not found or cannot be read.
 2. The `config` directory (or the directory specified by the `NODE_CONFIG_DIR` environment variable) is not found in the application directory containing the `package.json` file.
-3. The `default.(js|json)` configuration file is not found in the `config` directory if the `NODE_ENV` environment variable is not set.
+3. The default configuration file is not found in the `config` directory if the `NODE_ENV` environment variable is not set.
 4. The configuration file specified by the `NODE_ENV` environment variable cannot be read.
 5. The configuration file does not contain a JavaScript or JSON object.
+
+Testing
+-------
+
+```no-highlight
+$ node test/pkgconfig-test.js
+Passed test 1 (read the default configuration file).
+Passed test 2 (read the default and development configuration files).
+Passed test 3 (read only the development configuration file).
+Passed test 4 (error if the NODE_ENV configuration file is not found).
+Passed test 5 (error if the default configuration file is not found).
+All tests pass.
+```
 
 License
 -------

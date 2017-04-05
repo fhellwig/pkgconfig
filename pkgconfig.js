@@ -22,23 +22,23 @@
 
 const fs = require('fs')
 const path = require('path')
-const util = require('util')
 const pkgfinder = require('pkgfinder')
+const objectMerge = require('object-merge')
 
-function pkgconfig() {
-    const pkg = pkgfinder()
+function pkgconfig(defaultConfigFile) {
     const dir = configdir()
     const env = process.env.NODE_ENV
+    defaultConfigFile = defaultConfigFile || 'default'
     if (env) {
         const e = loadrequired(dir, env)
-        const d = loadoptional(dir, 'default')
+        const d = loadoptional(dir, defaultConfigFile)
         if (d === null) {
             return e
         } else {
-            return Object.assign(d, e)
+            return objectMerge(d, e)
         }
     } else {
-        return loadrequired(dir, 'default')
+        return loadrequired(dir, defaultConfigFile)
     }
 }
 
@@ -89,7 +89,7 @@ function checkobj(val) {
 }
 
 function gettype(val) {
-    return util.isArray(val) ? 'array' : typeof val
+    return Array.isArray(val) ? 'array' : typeof val
 }
 
 // Merges the source with the target. The target is modified and returned.

@@ -1,0 +1,10 @@
+{
+    "server": {
+        "port": 443
+    },
+    "database": {
+        "connection": {
+            "string": "my_database_connection_string"
+        }
+    }
+}
